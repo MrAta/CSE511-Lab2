@@ -8,20 +8,20 @@ char *filename = "names.txt";
 pthread_mutex_t db_mutex;
 
 void db_init() {
-  pthread_mutex_init(&db_mutex, 0);
+  //pthread_mutex_init(&db_mutex, 0);
 }
 
 void db_connect()  {
-  pthread_mutex_lock(&db_mutex);
-  file = fopen(filename, "r+");
+  //pthread_mutex_lock(&db_mutex);
+  //file = fopen(filename, "r+");
 }
 
 void db_cleanup() {
-  if (file != NULL) {
-    fclose(file);
-    file = NULL;
-  }
-  pthread_mutex_unlock(&db_mutex);
+  //if (file != NULL) {
+//    fclose(file);
+//    file = NULL;
+//  }
+//  pthread_mutex_unlock(&db_mutex);
 }
 
 
