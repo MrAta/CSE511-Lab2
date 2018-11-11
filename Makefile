@@ -1,17 +1,23 @@
-all: server client client2 client3 client4 client5 client6 client7 client8
+LINK=gcc
+CC=gcc
+CFLAGS=-c -ggdb -Wall -I. -I/opt/local/include -I./libdict/include
+LINKFLAGS=-L. -g -ggdb -pthread -L/opt/local/lib -L./libdict/bin
+LIBFLAGS=-shared -Wall -pthread
+LINKLIBS=-lm -lrt -ldict
+TARGETS=server client
+OBJECTS= server-main.o \
+			db.o \
+			cache.o \
+			lsm.o \
+			server-part1.o
 
-server: server-part1 deps
-	gcc -g -c -std=gnu99 server-main.c -o server-main.o -pthread
-	gcc -g -std=gnu99 server-main.o server-part1.o server-part2.o server-part3.o db.o cache.o lsm.o -o server -pthread
+all: $(TARGETS)
 
-server-part1:
-	gcc -g -c -std=gnu99 server-part1.c -o server-part1.o -pthread
+.c.o:
+	$(CC) $(CFLAGS) -o $@ $<
 
-deps:
-	gcc -g -c -std=gnu99 db.c -o db.o
-	gcc -g -c -std=gnu99 cache.c -o cache.o
-	gcc -g -c -std=gnu99 lsm.c -i lsm.o
-
+server: $(OBJECTS)
+	$(LINK) $(LINKFLAGS) $^ $(LINKLIBS) -o $@
 
 client: client.c
 	gcc -g -std=gnu99 client.c -o client -pthread -lm
