@@ -14,12 +14,13 @@
 #define MAX_KEY_SIZE 16
 #define MAX_VALUE_SIZE 64
 #define MAX_ENTRY_SIZE 80
+#define NODE_LIMIT 38
 
 #include <fcntl.h>
 #include <sys/mman.h>
 #include "db.h"
 
-extern const int NODE_LIMIT;
+//extern const int NODE_LIMIT;
 
 typedef struct {
   char *filename;
@@ -53,8 +54,8 @@ typedef struct BTREE_NODE {
   int isLeaf; // Whether the node is a leaf node
   int n; // Current number of keys
   int allocated;
-  KEY_VAL **keys;
-  struct BTREE_NODE **children;
+  KEY_VAL *keys[NODE_LIMIT];
+  struct BTREE_NODE *children[NODE_LIMIT];
   int fd;
 } BTREE_NODE;
 

@@ -21,8 +21,8 @@ int main() {
   //
   //
   BTREE_NODE *root;
-  char *key = malloc(MAX_KEY_SIZE);
-  char *value = malloc(MAX_VALUE_SIZE);
+  char *key;
+  char *value;
   KEY_VAL key_val;
   time_t current_time;
   int rc;
@@ -47,6 +47,8 @@ int main() {
   // TEST 1: BTREE KEY INSERTION
   printf("Running test 1\n");
   root = setup();
+  key = malloc(MAX_KEY_SIZE);
+  value = malloc(MAX_VALUE_SIZE);
   generate_key(key);
   generate_value(value);
   key_val.key = key;
@@ -59,6 +61,8 @@ int main() {
   printf("Running test 1.2\n");
   for (int i = 0; i < 1024; i++) {
     printf("Inserting key number %d\n", i);
+    key = malloc(MAX_KEY_SIZE);
+    value = malloc(MAX_VALUE_SIZE);
     generate_key(key);
     generate_value(value);
     key_val.key = key;

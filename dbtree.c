@@ -8,8 +8,8 @@
 
 #define BT_FILENAME_SIZE 20
 
-const int NODE_LIMIT =
-  ( PAGE_SIZE - sizeof(BTREE_NODE)) / ( MAX_ENTRY_SIZE + sizeof(int) + MAX_FILENAME_SIZE );
+//const int NODE_LIMIT =
+//  ( PAGE_SIZE - sizeof(BTREE_NODE)) / ( MAX_ENTRY_SIZE + sizeof(int) + MAX_FILENAME_SIZE );
 //int store_size  = (int)PAGE_SIZE - sizeof(BTREE_METADATA) - sizeof(int);
 //int file_store_size  = (int)PAGE_SIZE - sizeof(BTREE_METADATA);
 
@@ -52,9 +52,9 @@ int btree_insert_non_full(BTREE_NODE *node, KEY_VAL *key_val) {
       node->keys[i + 1] = node->keys[i];
       i--;
     }
-    if (node->keys == NULL) {
-      node->keys = malloc(sizeof(KEY_VAL *) * NODE_LIMIT); // TODO: Figure out actual size
-    }
+//    if (node->keys == NULL) {
+//      node->keys = malloc(sizeof(KEY_VAL *) * NODE_LIMIT); // TODO: Figure out actual size
+//    }
     node->keys[i + 1] = key_val;
     node->n += 1;
     // TODO: Defer disk_write?
@@ -92,6 +92,7 @@ int btree_disk_write(BTREE_NODE *node) {
   int size;
 
   ftruncate(node->fd, 0);
+  lseek(node->fd, 0, SEEK_SET);
   size = marshall(node, &mbuf);
   if (write(node->fd, mbuf, size) < 0) {
     perror("Write DB node failed: ");
@@ -116,14 +117,23 @@ int btree_insert(BTREE_NODE **root, KEY_VAL *key_val) {
   BTREE_NODE *oldroot = *root;
   if (!oldroot->allocated) {
     oldroot = allocate_node(oldroot->filename);
-    cleanup(*root, 0);
+//    cleanup(*root, 0);
     *root = oldroot;
   }
   if (( *root )->n == NODE_LIMIT) {
     BTREE_NODE *newnode = allocate_node(NULL);
+    char *tmp = "tmp";
+    char *newname = newnode->filename;
+    rename((*root)->filename, tmp);
+    (*root)->filename = tmp;
+    rename(newnode->filename, ROOT_FNAME);
+    newnode->filename = ROOT_FNAME;
+    rename((*root)->filename, newname);
+    (*root)->filename = newname;
     *root = newnode;
     ( *root )->n = 0;
     ( *root )->children[0] = oldroot;
+    ( *root )->isLeaf = 0;
     btree_split_child(newnode, 0);
     return btree_insert_non_full(newnode, key_val);
   } else {
@@ -138,17 +148,21 @@ int btree_split_child(BTREE_NODE *node, int index) {
   //
   //
   BTREE_NODE *z = allocate_node(NULL);
-
-  BTREE_NODE *next_node = allocate_node(node->children[index]->filename);
+  BTREE_NODE *next_node;
+  if (!node->children[index]->allocated) {
+    next_node = allocate_node(node->children[index]->filename);
+  } else {
+    next_node = node->children[index];
+  }
   z->isLeaf = next_node->isLeaf;
   int median = (( NODE_LIMIT + 1 ) / 2 ) - 1;
   z->n = median;
   for (int j = 0; j < median; j++) {
-    btree_copy(z->keys[j], next_node->keys[j + median]);
+    z->keys[j] = next_node->keys[j + median];
   }
   if (!next_node->isLeaf) {
     for (int j = 0; j < median + 1; j++) {
-      memcpy(z->children[j], next_node->children[j + median + 1], sizeof(BTREE_NODE));
+      z->children[j] = next_node->children[j + median + 1];
     }
   }
   next_node->n = median;
@@ -201,7 +215,7 @@ BTREE_NODE *allocate_node(char *file_inf) {
   // LOCAL VARIABLES
   //
   //
-  BTREE_NODE *new_node = malloc(sizeof(BTREE_NODE));
+  BTREE_NODE *new_node = calloc(1, sizeof(BTREE_NODE));
   char *dbuf = calloc(PAGE_SIZE, 1);
   ssize_t rc = 0;
 //  int new_file = 0;
@@ -235,10 +249,10 @@ BTREE_NODE *allocate_node(char *file_inf) {
     perror("Maybe there was an error?: ");
     new_node->filename = malloc(MAX_FILENAME_SIZE);
     strcpy(new_node->filename, newfname);
-    new_node->allocated = 1;
     new_node->isLeaf = 1;
     new_node->n = 0;
   }
+  new_node->allocated = 1;
   free(newfname);
   return new_node;
 }
@@ -250,7 +264,7 @@ int marshall(BTREE_NODE *node, char **buffer) {
   //
   //
   int current_offset = 0;
-  *buffer = malloc(PAGE_SIZE);
+  *buffer = calloc(PAGE_SIZE, sizeof(char));
   char *dest = *buffer;
   char *kvbuf = NULL;
   int kvsize;
@@ -301,9 +315,16 @@ int unmarshall(BTREE_NODE *node, char *buf) {
   memcpy(&( node->n ), buf + seek, sizeof(int));
   seek += sizeof(int);
 
+//  if (node->keys == NULL) {
+//    node->keys = malloc(sizeof(KEY_VAL *) * NODE_LIMIT); // TODO: Figure out actual size
+//  }
+
   for (int i = 0; i < node->n; i++) {
     // Unarshall individual Key Values
     kvbuf = buf + seek;
+    if (node->keys[i] == NULL) {
+      node->keys[i] = malloc(sizeof(KEY_VAL));
+    }
     seek += unmarshall_kv(node->keys[i], kvbuf);
   }
   if (!node->isLeaf) {
@@ -329,8 +350,8 @@ void cleanup(BTREE_NODE *root, int full) {
       cleanup(root->children[i], full);
     }
   }
-  close(root->fd);
   if (full) {
+    close(root->fd);
     remove(root->filename);
   }
   free(root->filename);
@@ -356,9 +377,15 @@ int unmarshall_kv(KEY_VAL *key_val, char *buf) {
   // LOCAL VARIABLES
   //
   //
+  if (key_val->key == NULL) {
+    key_val->key = malloc(MAX_KEY_SIZE);
+  }
+  if (key_val->val == NULL) {
+    key_val->val = malloc(MAX_VALUE_SIZE);
+  }
   memcpy(key_val->key, buf, MAX_KEY_SIZE);
   memcpy(key_val->val, buf + MAX_KEY_SIZE, MAX_VALUE_SIZE);
-  memcpy(&( key_val->timestamp ), buf + MAX_VALUE_SIZE + MAX_VALUE_SIZE, sizeof(time_t));
+  memcpy(&( key_val->timestamp ), buf + MAX_KEY_SIZE + MAX_VALUE_SIZE, sizeof(time_t));
   return MAX_KEY_SIZE + MAX_VALUE_SIZE + sizeof(time_t);
 }
 
