@@ -2,6 +2,26 @@
 // Created by sps5394 on 10/18/18.
 //
 #include "server-part1.h"
+#include "c0.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <signal.h>
+#include <time.h>
+
+#define CLOCKID CLOCK_REALTIME
+#define SIG SIGRTMIN
+
+#define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE); \
+                        } while (0)
+pthread_mutex_t c0_mutex;
+
+
+static void
+my_timer_handler(int sig, siginfo_t *si, void *uc)
+{
+    //TODO: flush c0 to a file
+}
 
 struct sockaddr_in address;
 
@@ -36,43 +56,24 @@ int server_1_get_request(char *key, char **ret_buffer, int *ret_size) {
 }
 
 int server_1_put_request(char *key, char *value, char **ret_buffer, int *ret_size) {
-  // Always perform IO
-  if (db_put(key, value, ret_buffer, ret_size)) {
-    return EXIT_FAILURE;
-  }
-  if (strcmp(*ret_buffer, "NOTFOUND") != 0) {
-    cache_put(key, value);
-  }
+  pthread_mutex_lock(&c0_mutex);
+  Update(T, key, value);
+  pthread_mutex_unlock(&c0_mutex);
   return EXIT_SUCCESS;
 }
 
 int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_size) {
-  if (cache_get(key) != NULL) { // check if req_key in cache; yes - error: duplicate req_key violation, no - check db
-    printf("%s\n", "error: duplicate req_key violation");
-    // TODO: update timings
-    *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
-    strcpy(*ret_buffer, "DUPLICATE");
-    *ret_size = 9;
-    return EXIT_FAILURE;
-  }
-  // Always perform IO
-  if (db_insert(key, value, ret_buffer, ret_size)) {
-    return EXIT_FAILURE;
-  }
-  if (strcmp(*ret_buffer, "DUPLICATE") != 0) {
-    cache_put(key, value);
-  }
+  pthread_mutex_lock(&c0_mutex);
+  T = Insert(T, key, value);
+  pthread_mutex_unlock(&c0_mutex);
   return EXIT_SUCCESS;
 }
 
 int server_1_delete_request(char *key, char **ret_buffer, int *ret_size) {
-  // Always perform IO
-  if (db_delete(key, ret_buffer, ret_size)) {
-    return EXIT_FAILURE;
-  }
-  if (strcmp(*ret_buffer, "NOTFOUND") != 0) {
-    cache_invalidate(key);
-  }
+  pthread_mutex_lock(&c0_mutex);
+  if(Get(T, key) != NULL)
+  T = Delete(T, key);
+  pthread_mutex_unlock(&c0_mutex);
   return EXIT_SUCCESS;
 }
 
@@ -177,7 +178,38 @@ int loop_and_listen_1() {
 int run_server_1() {
   // Load database
   head = tail = temp_node = NULL;
+  T = NULL;
+  pthread_mutex_init(&c0_mutex, 0);
   db_init();
+
+  timer_t timerid;
+  struct sigevent sev;
+  struct itimerspec its;
+  long long freq_nanosecs;
+  sigset_t mask;
+  struct sigaction sa;
+
+  /* Establish handler for timer signal */
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = my_timer_handler;
+  sigemptyset(&sa.sa_mask);
+  if (sigaction(SIG, &sa, NULL) == -1)
+      errExit("sigaction");
+
+  /* Create the timer */
+  sev.sigev_notify = SIGEV_SIGNAL;
+  sev.sigev_signo = SIG;
+  sev.sigev_value.sival_ptr = &timerid;
+  if (timer_create(CLOCKID, &sev, &timerid) == -1)
+      errExit("timer_create");
+
+  /* Start the timer */
+  its.it_value.tv_sec = 65;//freq_nanosecs / 1000000000; Each 65 seconds flush c0
+  its.it_value.tv_nsec = 0;//freq_nanosecs % 1000000000;
+  its.it_interval.tv_sec = its.it_value.tv_sec;
+  its.it_interval.tv_nsec = its.it_value.tv_nsec;
+  if (timer_settime(timerid, 0, &its, NULL) == -1)
+       errExit("timer_settime");
 
   if (loop_and_listen_1()) {
     return EXIT_FAILURE;
