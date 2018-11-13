@@ -12,11 +12,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
+#include "dbtree.h"
 
-// need to check over these
-#define MAX_KEY_SIZE 1024
-#define MAX_VALUE_SIZE 11264
-#define MAX_ENTRY_SIZE 11264
 
 // Database file
 FILE *file;

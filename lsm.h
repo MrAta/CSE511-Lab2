@@ -8,11 +8,12 @@
 typedef char * lsm_key_t;
 typedef char * lsm_val_t;
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct {
   size_t capacity;
   size_t size;
-
+//  hb_tree *avl;
 } lsm_t;
 
 typedef struct {
@@ -92,5 +93,10 @@ int _lsm_flush(lsm_t *lsm);
  */
 int _lsm_compact(lsm_t *lsm);
 
+/**
+ * Runs a comparison on the value and returns the result.
+ * -ve if k1 < k2, - if k1 == k2, +ve if k1 > k2.
+ */
+int lsm_key_cmp(lsm_key_t k1, lsm_key_t k2);
 
 #endif //P2_CSRF_LSM_H

@@ -1,23 +1,30 @@
 LINK=gcc
 CC=gcc
-CFLAGS=-c -ggdb -Wall -I. -I/opt/local/include -I./libdict/include
-LINKFLAGS=-L. -g -ggdb -pthread -L/opt/local/lib -L./libdict/bin
+CFLAGS=-c -ggdb -std=gnu99 -Wall -I. -I/opt/local/include
+LINKFLAGS=-L. -g -ggdb -std=gnu99 -pthread -L/opt/local/lib
 LIBFLAGS=-shared -Wall -pthread
-LINKLIBS=-lm -lrt -ldict
+LINKLIBS=-lm -lrt
 TARGETS=server client
 OBJECTS= server-main.o \
 			db.o \
 			cache.o \
 			lsm.o \
+			dbtree.o \
 			server-part1.o
+TEST_TARGETS= btreeunit
 
 all: $(TARGETS)
+
+test: $(TEST_TARGETS)
 
 .c.o:
 	$(CC) $(CFLAGS) -o $@ $<
 
 server: $(OBJECTS)
 	$(LINK) $(LINKFLAGS) $^ $(LINKLIBS) -o $@
+
+btreeunit: btree_unit_tests.c lsm.o dbtree.o
+	$(CC) $(LINKFLAGS) $^ $(LINKLIBS) -o $@
 
 client: client.c
 	gcc -g -std=gnu99 client.c -o client -pthread -lm
@@ -44,4 +51,4 @@ client8: client8.c
 	gcc -g -std=gnu99 client8.c -o client8 -pthread -lm
 
 clean:
-	rm server client client2 client3 client4 client5 client6 client7 client8 *.o
+	rm server client client2 client3 client4 client5 client6 client7 client8 btreeunit *.o
