@@ -9,8 +9,10 @@ c0_node * Insert(c0_node *T,char * key, char * value)
     {
       // printf("null Insert\n" );
         T=(c0_node*)malloc(sizeof(c0_node));
-        T->key=key;
-	T->value=value;
+        T->key = (char *)malloc(strlen(key)+1);
+        T->value = (char *)malloc(strlen(value)+1);
+        strcpy(  T->key,key);
+	      strcpy(  T->value,value);
         T->left=NULL;
         T->right=NULL;
         // printf("inserted %p\n", T);
@@ -263,6 +265,7 @@ void c0_dump(c0_node * T){
   snprintf(str, 80, "%ld", s);
   char *filename = str;
   FILE * file = fopen(filename, "w");
+
   dumpToFile(T, file);
   fclose(file);
 }
@@ -272,11 +275,15 @@ void dumpToFile(c0_node *T, FILE * f)
     if(T!=NULL)
     {
         dumpToFile(T->left, f);
-        char * str = T -> key;
+        char * str = (char*)malloc(strlen(T->key)+ strlen(T->value) + 3);
+        strcpy(str , T -> key);
+        // printf("KEY:%s, VALUE: %s\n", T->key, T->value);
         strcat(str, " ");
         strcat(str, T->value);
         strcat(str, "\n");
-        fwrite(str, sizeof(char), sizeof(str) ,f);//;printf("(key:%s, value:%s)[Bf=%d]",T->key, T->value,BF(T));
+        printf("ATATATAT:%s\n", str);
+        fwrite(str, sizeof(char), strlen(str) ,f);//;printf("(key:%s, value:%s)[Bf=%d]",T->key, T->value,BF(T));
+        free(str);
         dumpToFile(T->right, f);
     }
 }
