@@ -1,20 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "c0.h"
 c0_node * Insert(c0_node *T,char * key, char * value)
 {
     if(T==NULL)
     {
+      // printf("null Insert\n" );
         T=(c0_node*)malloc(sizeof(c0_node));
         T->key=key;
 	T->value=value;
         T->left=NULL;
         T->right=NULL;
+        // printf("inserted %p\n", T);
     }
     else
         if(strcmp(key, T->key) > 0 )        // insert in right subtree
         {
+          printf("Higher\n" );
             T->right=Insert(T->right, key, value);
             if(BF(T)==-2)
                 if(strcmp(key, T->right->key) > 0)
@@ -23,8 +27,9 @@ c0_node * Insert(c0_node *T,char * key, char * value)
                     T=RL(T);
         }
         else
-            if(strcmp(key , T->key) < 0)
+            if(strcmp(key , T->key) <= 0)
             {
+              printf("Lower\n" );
                 T->left=Insert(T->left, key, value);
                 if(BF(T)==2)
                     if(strcmp(key, T->left->key) <=0)
@@ -35,7 +40,7 @@ c0_node * Insert(c0_node *T,char * key, char * value)
 
         T->ht=height(T);
 
-        return(T);
+        return T;
 }
 
 c0_node * Delete(c0_node *T,char * key)
@@ -248,4 +253,38 @@ void inorder(c0_node *T)
         printf("(key:%s, value:%s)[Bf=%d]",T->key, T->value,BF(T));
         inorder(T->right);
     }
+}
+void c0_dump(c0_node * T){
+  clock_t s;
+  s = clock();
+  srand(time(NULL));
+  s = s + rand();
+  char * str = (char*) malloc(sizeof(char)*80);
+  snprintf(str, 80, "%ld", s);
+  char *filename = str;
+  FILE * file = fopen(filename, "w");
+  dumpToFile(T, file);
+  fclose(file);
+}
+void dumpToFile(c0_node *T, FILE * f)
+{
+
+    if(T!=NULL)
+    {
+        dumpToFile(T->left, f);
+        char * str = T -> key;
+        strcat(str, " ");
+        strcat(str, T->value);
+        strcat(str, "\n");
+        fwrite(str, sizeof(char), sizeof(str) ,f);//;printf("(key:%s, value:%s)[Bf=%d]",T->key, T->value,BF(T));
+        dumpToFile(T->right, f);
+    }
+}
+int c0_size(c0_node* T)
+{
+  // printf("Cacling Size: %p\n",T );
+  if (T==NULL)
+    return 0;
+  else
+    return(c0_size(T->left) + 1 + c0_size(T->right));
 }

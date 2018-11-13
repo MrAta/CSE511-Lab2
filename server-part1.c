@@ -11,16 +11,21 @@
 
 #define CLOCKID CLOCK_REALTIME
 #define SIG SIGRTMIN
-
+#define C0_SIZE_TRSH 50
 #define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE); \
                         } while (0)
 pthread_mutex_t c0_mutex;
-
+c0_node * T;
 
 static void
 my_timer_handler(int sig, siginfo_t *si, void *uc)
 {
-    //TODO: flush c0 to a file
+  pthread_mutex_lock(&c0_mutex);
+  c0_dump(T);
+  T = NULL;
+  pthread_mutex_unlock(&c0_mutex);
+
+
 }
 
 struct sockaddr_in address;
@@ -64,8 +69,17 @@ int server_1_put_request(char *key, char *value, char **ret_buffer, int *ret_siz
 
 int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_size) {
   pthread_mutex_lock(&c0_mutex);
+  printf("ATA: size %d\n", c0_size(T));
   T = Insert(T, key, value);
-  pthread_mutex_unlock(&c0_mutex);
+  // printf("Modri ret: %p and size: %d\n",T , c0_size(T));
+  // inorder(T);
+
+  if (c0_size(T) == C0_SIZE_TRSH){
+    c0_dump(T);
+    T = NULL;
+  }
+    pthread_mutex_unlock(&c0_mutex);
+
   return EXIT_SUCCESS;
 }
 
@@ -98,7 +112,7 @@ void *server_handler(void *arg) {
       write(sockfd, response, (size_t) response_size);
     } else if (strncmp(tokens, "INSERT", 6) == 0) {
       server_1_insert_request(key, value, &response, &response_size);
-      write(sockfd, response, (size_t) response_size);
+      write(sockfd, "OK", 2);
     } else if (strncmp(tokens, "DELETE", 6) == 0) {
       server_1_delete_request(key, &response, &response_size);
       write(sockfd, response, (size_t) response_size);
