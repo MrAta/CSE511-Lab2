@@ -86,7 +86,7 @@ int remove_transaction(int txid)
                 offset = (sizeof(int) + sizeof(int)) * -1; // seek back to position to overwrite 4 byte 'valid' variable
                 fseek(file, offset, SEEK_CUR);
                 fwrite(0, 1, sizeof(int), file); // mark transaction as invalid (subsequent recovers/removes should ignore it)
-                if (fflush(fclose(file);) != 0) {
+                if (fflush(file) != 0) {
                     perror("Could not remove transaction.");
                     free(tmp_entry);
                     tmp_entry = NULL;
