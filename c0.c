@@ -264,21 +264,19 @@ void c0_dump(c0_node * T){
   c1_batch_insert(nodes, MAX_C0_SIZE);
   return;
 }
-int dumpToArray(c0_node * T, c0_node *nodes[], int i){
-    if(T == NULL) return i;
+void dumpToArray(c0_node * T, c0_node *nodes[], int i){
+    if(T == NULL) return;
     //   nodes[i] = T;
     //   i++;
     //   if(T->left != NULL)
-    i = dumpToArray(T->left, nodes, i);
+    dumpToArray(T->left, nodes, i);
 
     nodes[i] = T;
     printf("node inserted: %s\n", nodes[i]->key);
     i++;
 
     //   if(T->right != NULL)
-    i = dumpToArray(T->right, nodes, i);
-
-    // return i++;
+    dumpToArray(T->right, nodes, i);
 }
 void dumpToFile(c0_node *T, FILE * f)
 {

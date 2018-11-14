@@ -7,7 +7,7 @@ c0_node * Update(c0_node * T, char * key, char * value, int flag);
 void preorder(c0_node *T);
 void inorder(c0_node *T);
 void dumpToFile(c0_node * T, FILE * f);
-int dumpToArray(c0_node * T, c0_node *nodes[], int i);
+void dumpToArray(c0_node * T, c0_node *nodes[], int i);
 void c0_dump(c0_node * T);
 int c0_size(c0_node* T);
 int height( c0_node *T);
