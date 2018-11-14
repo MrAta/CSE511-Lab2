@@ -30,7 +30,7 @@ typedef struct TxE {
 
 typedef struct transaction {
     TxB txb;
-    Db data;
+    Db db;
     int valid;
     TxE txe;
 } transaction;

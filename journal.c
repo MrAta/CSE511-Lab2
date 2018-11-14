@@ -23,9 +23,9 @@ int log_transaction(transaction *tx)
         return -1;
     }
 
-    fwrite(*(tx->Db.data), 1, strlen(*(tx->Db.data)), file); // issue data
+    fwrite(*(tx->db.data), 1, strlen(*(tx->db.data)), file); // issue data
     if (fflush(file) != 0) {
-        perror("Could not flush Db.");
+        perror("Could not flush data.");
         fclose(file);
         return -1;
     }
