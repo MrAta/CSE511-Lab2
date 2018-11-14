@@ -10,6 +10,7 @@
 #include <math.h>
 #include <time.h>
 #include <string.h>
+#define TARGET_ADDR "127.0.0.1"
 #define PORT 8086
 #define N_KEY 37 //total number of unique keys
 #define a 1.345675 //parameter for zipf distribution to obtain a 90% populariy for 10% of the keys.
@@ -249,7 +250,7 @@ int main(int argc, char const *argv[])
     serv_addr->sin_port = htons(PORT);
 
     // Convert IPv4 and IPv6 addresses from text to binary form
-    if(inet_pton(AF_INET, "127.0.0.1", &serv_addr->sin_addr)<=0)
+    if(inet_pton(AF_INET, TARGET_ADDR, &serv_addr->sin_addr)<=0)
     {
         printf("\nInvalid address/ Address not supported \n");
         return -1;
