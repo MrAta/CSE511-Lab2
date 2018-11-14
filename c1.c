@@ -28,7 +28,7 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   char *keyval;
 
   asprintf(&filename, "%s/%d", DB_DIR, file_counter);
-  if (( fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR)) == -1) {
+  if (( fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IWUSR)) == -1) {
     free(filename);
     perror("Failed to open new file: ");
     return -1;
@@ -66,14 +66,30 @@ int c1_batch_insert(c0_node *nodes[], int size) {
     free(filename);
     filename = NULL;
 
-    if (merge(fdopen(fd, "r"), fdopen(oldfd, "r")) == -1) {
+    FILE *file1 = fdopen(fd, "r");
+    if (file1 == NULL) {
+      close(fd);
+      close(oldfd);
+      return -1;
+    }
+    rewind(file1);
+    FILE *file2 = fdopen(oldfd, "r");
+    if (file2 == NULL) {
+      close(fd);
+      close(oldfd);
+      fclose(file1);
+      return -1;
+    }
+    rewind(file2);
+    if (merge(file1, file2) == -1) {
       close(fd);
       close(oldfd);
       return -1;
     }
   }
   asprintf(&filename, "%s/%d", DB_DIR, file_counter);
-  FILE *currfile = fopen(filename, "r");
+  int ssfd = open(filename, O_RDONLY | O_CREAT, S_IRUSR);
+  FILE *currfile = fdopen(ssfd, "r");
 
   // Complete
   file_counter++;
@@ -81,6 +97,7 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   update_sstable(currfile, metadata);
   fclose(currfile);
   close(fd);
+  close(ssfd);
   if (oldfd != 0) {
     close(oldfd);
   }
@@ -98,6 +115,8 @@ int merge(FILE *file1, FILE *file2) {
   int mergefd, valid1, valid2;
   size_t len1, len2;
   ssize_t size1 = 0, size2 = 0;
+
+  if (file1 == NULL || file2 == NULL) return -1;
 
   asprintf(&filename, "%s/%d", DB_DIR, ++file_counter);
   if (( mergefd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR)) == -1) {

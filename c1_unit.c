@@ -42,6 +42,18 @@ int main() {
   assert(rc == 0);
   printf("Finished running TEST 2\n");
 
+  printf("Running TEST 3\n");
+  for (int i = 0; i < MAX_C0_SIZE; i++) {
+    node[i] = malloc(sizeof(c0_node));
+    node[i]->key = malloc(MAX_KEY_SIZE);
+    snprintf(node[i]->key, MAX_KEY_SIZE, "%dTestkey", i);
+    node[i]->value = malloc(MAX_VALUE_SIZE);
+    snprintf(node[i]->value, MAX_VALUE_SIZE, "TestValue%d", i);
+  }
+  rc = c1_batch_insert(node, MAX_C0_SIZE);
+  assert(rc == 0);
+  int check = access("./.db/1", R_OK);
+  assert(check == 0);
 
   printf("Successfully ran all tests\n");
   return 0;
