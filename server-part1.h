@@ -15,7 +15,7 @@
 #include <string.h>
 #include <pthread.h>
 #include "cache.h"
-#include "db.h"
+// #include "db.h"
 
 #define PORT 8086
 #define QUEUED_CONNECTIONS 5

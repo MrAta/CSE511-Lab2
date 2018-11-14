@@ -1,11 +1,17 @@
 //
 // Created by MrAta on 11/13/18.
 //
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
 #ifndef P2_CSRF_C1_H
 #define P2_CSRF_C1_H
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
 
 #define DB_DIR "./.db"
 #define SSTABLE "sstable"
@@ -25,7 +31,7 @@ typedef struct c0_node {
   int flag; //0:valid, 1: invlaid
 } c0_node;
 
-int c1_batch_insert(c0_node nodes[], int size);
+int c1_batch_insert(c0_node *nodes[], int size);
 
 char *c1_get(char *key);
 

@@ -15,7 +15,7 @@ int file_counter = 0;
 
 char *c1_search(FILE* file, char *key, int startline, int endline) ;
 
-int c1_batch_insert(c0_node nodes[], int size) {
+int c1_batch_insert(c0_node *nodes[], int size) {
   //
   //
   // LOCAL VARIABLES
@@ -34,9 +34,9 @@ int c1_batch_insert(c0_node nodes[], int size) {
   free(filename);
   filename = NULL;
   for (int i = 0; i < size; i++) {
-    if (( rc = asprintf(&keyval, "%.*s %.*s %d\n", (int) MAX_KEY_SIZE, nodes[i].key,
+    if (( rc = asprintf(&keyval, "%.*s %.*s %d\n", (int) MAX_KEY_SIZE, nodes[i]->key,
                         (int) MAX_VALUE_SIZE,
-                        nodes[i].value, nodes[i].flag)) == -1) {
+                        nodes[i]->value, nodes[i]->flag)) == -1) {
       close(fd);
       fprintf(stderr, "Failed to create db entry\n");
       return -1;
@@ -215,7 +215,7 @@ char *c1_search(FILE* file, char *key, int startline, int endline) {
     int mid = (( endline - startline ) / 2 ) + 1;
     fseek(file, mid * LINE_SIZE, SEEK_SET);
     getline(&line, &len, file);
-    sscanf(line, "%ms %ms %d", &r_key, &val, &valid);
+    sscanf(line, "%ms %ms %ld", &r_key, &val, &valid);
     free(line);
     if (strcmp(r_key, key) == 0) {
       free(r_key);
