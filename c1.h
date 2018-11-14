@@ -1,13 +1,38 @@
+//
+// Created by MrAta on 11/13/18.
+//
+#ifndef P2_CSRF_C1_H
+#define P2_CSRF_C1_H
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define DB_DIR "./.db"
+#define SSTABLE "sstable"
+#define MAX_KEY_SIZE 128
+#define MAX_VALUE_SIZE 256
+#define MAX_ENTRY_SIZE MAX_VALUE_SIZE + MAX_KEY_SIZE
+#define LINE_SIZE MAX_ENTRY_SIZE + 3 + 4
 #define MAX_C0_SIZE 100
-typedef struct c0_node
-{
-    char * key;
-    char * value;
-    struct c0_node *left,*right;
-    int ht;
-    int flag; //0:valid, 1: invlaid
-}c0_node;
+
+extern int file_counter;
+
+typedef struct c0_node {
+  char *key;
+  char *value;
+  struct c0_node *left, *right;
+  int ht;
+  int flag; //0:valid, 1: invlaid
+} c0_node;
+
+int c1_batch_insert(c0_node nodes[], int size);
+
+char *c1_get(char *key);
+
+/************** PRIVATE FUNCTIONS **************/
+int merge(FILE *file1, FILE *file2);
 
 
-void c1_batch_insert(c0_node *nodes[], int size);
-char * c1_get(char *key);
+// Code from: https://stackoverflow.com/questions/22697407/reading-text-file-into-char-array
+
+#endif
