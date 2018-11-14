@@ -1,3 +1,4 @@
+#define MAX_C0_SIZE 100
 typedef struct c0_node
 {
     char * key;
@@ -8,5 +9,5 @@ typedef struct c0_node
 }c0_node;
 
 
-void c1_batch_insert(c0_node nodes[], int size);
+void c1_batch_insert(c0_node *nodes[], int size);
 char * c1_get(char *key);

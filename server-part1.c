@@ -11,21 +11,21 @@
 
 #define CLOCKID CLOCK_REALTIME
 #define SIG SIGRTMIN
-#define C0_SIZE_TRSH 4
+// #define C0_SIZE_TRSH 4
 #define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE); \
                         } while (0)
 pthread_mutex_t c0_mutex;
+pthread_mutex_t cache_mutex;
 c0_node * _T;
 
 static void
 my_timer_handler(int sig, siginfo_t *si, void *uc)
 {
   pthread_mutex_lock(&c0_mutex);
-  c0_dump(_T);
+  c0_node * c0_batch = _T;
   _T = NULL;
   pthread_mutex_unlock(&c0_mutex);
-
-
+  c0_dump(c0_batch);
 }
 
 struct sockaddr_in address;
@@ -42,7 +42,10 @@ int server_1_get_request(char *key, char **ret_buffer, int *ret_size) {
     return EXIT_FAILURE;
   }
   // Perform cache lookup
+  // Perform cache lookup
+  pthread_mutex_lock(&cache_mutex);
   cache_lookup = cache_get(key);
+  pthread_mutex_unlock(&cache_mutex);
   if (cache_lookup != NULL) {
     // HIT
     *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
@@ -50,48 +53,114 @@ int server_1_get_request(char *key, char **ret_buffer, int *ret_size) {
     *ret_size = (int) strlen(*ret_buffer);
     return 0;
   }
-  // Perform IO
-  if (db_get(key, ret_buffer, ret_size)) {
-    return EXIT_FAILURE;
-  }
-  if (strcmp(*ret_buffer, "NOTFOUND") != 0) { // if result was NULL there was some kind of error
+  // Check c0:
+  pthread_mutex_lock(&c0_mutex);
+  c0_node *c0_lookup = Get(_T, key);
+  pthread_mutex_unlock(&c0_mutex);
+  if (c0_lookup != NULL) {
+    // HITz
+    *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+    strcpy(*ret_buffer, c0_lookup->value);
+    *ret_size = (int) strlen(*ret_buffer);
+    pthread_mutex_lock(&cache_mutex);
     cache_put(key, *ret_buffer);
+    pthread_mutex_unlock(&cache_mutex);
+    return 0;
+  }else{
+    //Go to C1
+    char * value = c1_get(key);
+    *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+    strcpy(*ret_buffer, value);
+    *ret_size = (int) strlen(*ret_buffer);
+    pthread_mutex_lock(&cache_mutex);
+    cache_put(key, *ret_buffer);
+    pthread_mutex_unlock(&cache_mutex);
+    return 0;
   }
   return EXIT_SUCCESS;
 }
 
 int server_1_put_request(char *key, char *value, char **ret_buffer, int *ret_size) {
+
   pthread_mutex_lock(&c0_mutex);
-  Update(_T, key, value);
-  pthread_mutex_unlock(&c0_mutex);
+  if(Get(_T, key)!=NULL){
+    Update(_T, key, value,0);
+    pthread_mutex_unlock(&c0_mutex);
+  }
+  else{
+    _T = Insert(_T, key, value,0);
+    if (c0_size(_T) == MAX_C0_SIZE){
+    c0_node * c0_batch = _T;
+    _T = NULL;
+    pthread_mutex_unlock(&c0_mutex);
+      c0_dump(c0_batch);
+    } else{
+    pthread_mutex_unlock(&c0_mutex);
+    }
+  }
+
+  strncpy(*ret_buffer, "SUCCESS", 7);
+  *ret_size = 7;
+  pthread_mutex_lock(&cache_mutex);
+  cache_put(key, value);
+  pthread_mutex_unlock(&cache_mutex);
+
   return EXIT_SUCCESS;
 }
 
 int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_size) {
-  pthread_mutex_lock(&c0_mutex);
-  printf("ATA: size %d\n", c0_size(_T));
-  // printf("Mori: key:%p\n", );
-  inorder(_T);
-  _T = Insert(_T, key, value);
-  // printf("Modri ret: %p and size: %d\n",T , c0_size(T));
-  // inorder(T);
-
-  if (c0_size(_T) == C0_SIZE_TRSH){
-    c0_dump(_T);
-    _T = NULL;
+  pthread_mutex_lock(&cache_mutex);
+  if (cache_get(key) != NULL) { // check if req_key in cache; yes - error: duplicate req_key violation, no - check db
+    pthread_mutex_unlock(&cache_mutex);
+    printf("%s\n", "error: duplicate req_key violation");
+    *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+    strcpy(*ret_buffer, "DUPLICATE");
+    *ret_size = 9;
+    return EXIT_FAILURE;
   }
+  pthread_mutex_lock(&c0_mutex);
+  if(Get(_T, key) != NULL){
     pthread_mutex_unlock(&c0_mutex);
+    printf("%s\n", "error: duplicate req_key violation");
+    *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+    strcpy(*ret_buffer, "DUPLICATE");
+    *ret_size = 9;
+    return EXIT_FAILURE;
+  }
+  _T = Insert(_T, key, value,0);
+  if (c0_size(_T) == MAX_C0_SIZE){
+    c0_node * c0_batch = _T;
+    _T = NULL;
+    pthread_mutex_unlock(&c0_mutex);
+    c0_dump(c0_batch);
+  }else{
+    pthread_mutex_unlock(&c0_mutex);
+  }
+  pthread_mutex_lock(&cache_mutex);
+  cache_put(key, value);
+  pthread_mutex_unlock(&cache_mutex);
 
   return EXIT_SUCCESS;
 }
 
 int server_1_delete_request(char *key, char **ret_buffer, int *ret_size) {
   pthread_mutex_lock(&c0_mutex);
-  if(Get(_T, key) != NULL)
-  _T = Delete(_T, key);
+  c0_node * look_up = Get(_T, key);
+  if(look_up != NULL)
+  _T = Update(_T, look_up->key, look_up->value, 1);
+  else
+  _T = Insert(_T, key, "invalid_delete", 1);
   pthread_mutex_unlock(&c0_mutex);
+  *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+  strcpy(*ret_buffer, "SUCCESS");
+  *ret_size = 7;
+  pthread_mutex_lock(&cache_mutex);
+  cache_invalidate(key);
+  pthread_mutex_unlock(&cache_mutex);
   return EXIT_SUCCESS;
+
 }
+
 
 void *server_handler(void *arg) {
   int sockfd = *(int *) arg;
@@ -99,7 +168,7 @@ void *server_handler(void *arg) {
   char *tokens, *response = NULL,  *save_ptr;
   int response_size;
   while (read(sockfd, input_line, MAX_ENTRY_SIZE)) {
-    db_connect();
+    // db_connect();
     tokens = strtok_r(input_line, " ", &save_ptr);
     char *key = strtok_r(NULL, " ", &save_ptr);
     char *value = strtok_r(NULL, " ", &save_ptr);
@@ -121,7 +190,7 @@ void *server_handler(void *arg) {
     } else {
       write(sockfd, "ERROR", 6);
     }
-    db_cleanup();
+    // db_cleanup();
     if (response != NULL) {
       free(response);
     }
@@ -196,7 +265,8 @@ int run_server_1() {
   head = tail = temp_node = NULL;
   _T = NULL;
   pthread_mutex_init(&c0_mutex, 0);
-  db_init();
+  pthread_mutex_init(&cache_mutex, 0);
+  // db_init();
 
   timer_t timerid;
   struct sigevent sev;

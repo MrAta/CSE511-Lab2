@@ -1,20 +1,13 @@
 #include<stdio.h>
-
-typedef struct c0_node
-{
-    char * key;
-    char * value;
-    struct c0_node *left,*right;
-    int ht;
-}c0_node;
-
-c0_node *Insert(c0_node * T,char *key, char *value);
+#include "c1.h"
+c0_node *Insert(c0_node * T,char *key, char *value, int flag);
 c0_node *Delete(c0_node *T,char *key);
 c0_node * Get(c0_node *T, char *key);
-c0_node * Update(c0_node * T, char * key, char * value);
+c0_node * Update(c0_node * T, char * key, char * value, int flag);
 void preorder(c0_node *T);
 void inorder(c0_node *T);
 void dumpToFile(c0_node * T, FILE * f);
+void dumpToArray(c0_node * T, c0_node *nodes[], int i);
 void c0_dump(c0_node * T);
 int c0_size(c0_node* T);
 int height( c0_node *T);

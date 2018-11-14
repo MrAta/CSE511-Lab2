@@ -3,7 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include "c0.h"
-c0_node * Insert(c0_node *T,char * key, char * value)
+c0_node * Insert(c0_node *T,char * key, char * value, int flag)
 {
     if(T==NULL)
     {
@@ -13,6 +13,7 @@ c0_node * Insert(c0_node *T,char * key, char * value)
         T->value = (char *)malloc(strlen(value)+1);
         strcpy(  T->key,key);
 	      strcpy(  T->value,value);
+        T->flag = flag;
         T->left=NULL;
         T->right=NULL;
         // printf("inserted %p\n", T);
@@ -21,7 +22,7 @@ c0_node * Insert(c0_node *T,char * key, char * value)
         if(strcmp(key, T->key) > 0 )        // insert in right subtree
         {
           printf("Higher\n" );
-            T->right=Insert(T->right, key, value);
+            T->right=Insert(T->right, key, value,flag);
             if(BF(T)==-2)
                 if(strcmp(key, T->right->key) > 0)
                     T=RR(T);
@@ -32,7 +33,7 @@ c0_node * Insert(c0_node *T,char * key, char * value)
             if(strcmp(key , T->key) <= 0)
             {
               printf("Lower\n" );
-                T->left=Insert(T->left, key, value);
+                T->left=Insert(T->left, key, value,flag);
                 if(BF(T)==2)
                     if(strcmp(key, T->left->key) <=0)
                         T=LL(T);
@@ -123,7 +124,7 @@ c0_node * Get(c0_node *T, char * key){
          }
 return NULL;
 }
-c0_node * Update(c0_node * T, char  * key, char * value){
+c0_node * Update(c0_node * T, char  * key, char * value, int flag){
   if(T==NULL)
   {
       return NULL;
@@ -132,17 +133,18 @@ c0_node * Update(c0_node * T, char  * key, char * value){
       if(strcmp(key,  T->key) == 0)
       {
           T->value = value;
+          T->flag = flag;
           return T;
       }
       else
           if(strcmp(key,T->key)<0)
           {
-              Update(T->left, key, value);
+              Update(T->left, key, value,flag);
           }
       else
          if(strcmp(key,T->key)>0)
          {
-           Update(T->right, key, value);
+           Update(T->right, key, value, flag);
          }
     return NULL;
 }
@@ -257,17 +259,19 @@ void inorder(c0_node *T)
     }
 }
 void c0_dump(c0_node * T){
-  clock_t s;
-  s = clock();
-  srand(time(NULL));
-  s = s + rand();
-  char * str = (char*) malloc(sizeof(char)*80);
-  snprintf(str, 80, "%ld", s);
-  char *filename = str;
-  FILE * file = fopen(filename, "w");
-
-  dumpToFile(T, file);
-  fclose(file);
+  c0_node *nodes[MAX_C0_SIZE];
+  dumpToArray(T, nodes, 0);
+  c1_batch_insert(nodes, MAX_C0_SIZE);
+  return;
+}
+void dumpToArray(c0_node * T, c0_node *nodes[], int i){
+  if(T == NULL) return;
+  nodes[i] = T;
+  i++;
+  if(T->left != NULL)
+    dumpToArray(T->left, nodes, i);
+  if(T->right != NULL)
+    dumpToArray(T->right, nodes, i);
 }
 void dumpToFile(c0_node *T, FILE * f)
 {
