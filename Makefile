@@ -1,4 +1,5 @@
-all: server client client2 client3 client4 client5 client6 client7 client8
+# all: server client client2 client3 client4 client5 client6 client7 client8
+all: server client
 
 server: server-part1 deps
 	gcc -g -c -std=gnu99 server-main.c -o server-main.o -pthread -lrt
@@ -14,26 +15,28 @@ deps:
 client: client.c
 	gcc -g -std=gnu99 client.c -o client -pthread -lm
 
-client7: client7.c
-	gcc -g -std=gnu99 client7.c -o client7 -pthread -lm
+# client7: client7.c
+# 	gcc -g -std=gnu99 client7.c -o client7 -pthread -lm
 
-client2: client2.c
-	gcc -g -std=gnu99 client2.c -o client2 -pthread
+# client2: client2.c
+# 	gcc -g -std=gnu99 client2.c -o client2 -pthread
 
-client3: client3.c
-	gcc -g -std=gnu99 client3.c -o client3 -pthread
+# client3: client3.c
+# 	gcc -g -std=gnu99 client3.c -o client3 -pthread
 
-client4: client4.c
-	gcc -g -std=gnu99 client4.c -o client4 -pthread
+# client4: client4.c
+# 	gcc -g -std=gnu99 client4.c -o client4 -pthread
 
-client5: client5.c
-	gcc -g -std=gnu99 client5.c -o client5 -pthread
+# client5: client5.c
+# 	gcc -g -std=gnu99 client5.c -o client5 -pthread
 
-client6: client6.c
-	gcc -g -std=gnu99 client6.c -o client6 -pthread
+# client6: client6.c
+# 	gcc -g -std=gnu99 client6.c -o client6 -pthread
 
-client8: client8.c
-	gcc -g -std=gnu99 client8.c -o client8 -pthread -lm
+# client8: client8.c
+# 	gcc -g -std=gnu99 client8.c -o client8 -pthread -lm
 
+# clean:
+# 	rm server client client2 client3 client4 client5 client6 client7 client8 *.o
 clean:
-	rm server client client2 client3 client4 client5 client6 client7 client8 *.o
+	rm server client *.o
