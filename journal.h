@@ -8,7 +8,7 @@
 #define P1_CRSF_JOURNAL_H
 
 /* Includes */
-
+#include <stdlib.h>
 
 /* Defines */
 
@@ -17,13 +17,16 @@ typedef struct TxB {
     char *key; // "disk blocks to be changed" -> c0_node to be changed?
 }TxB;
 
-typedef struct Db {
-    char *val;
-}Db;
+typedef char * Db;
+// typedef struct Db {
+//     char *val;
+// }Db;
 
-typedef struct TxE {
-    int complete;
-}TxE;
+
+typedef int TxE;
+// typedef struct TxE {
+//     int complete;
+// }TxE;
 
 typedef struct transaction {
     TxB txb;

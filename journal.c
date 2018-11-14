@@ -11,14 +11,27 @@ int log_transaction(transaction *tx)
         return -1;
     }
 
+    tx->txb.txid = rand();
     fwrite(tx->txb.txid, 1, sizeof(int), fp); // begin.1
     fwrite(*(tx->txb.key), 1, strlen(*(tx->txb.key)), fp); // begin.2
-    fwrite(*(tx->data.val), 1, strlen(*(tx->data.val)), fp); // data
-    fwrite(tx->txe.complete, 1, sizeof(int), fp); // commit
-    fwrite("\n", 1, 1, fp); // entry delimiter (sizeof(transaction) positions delimits them too)
-    
     if (fflush(fp) != 0) {
-        perror("Could not flush stream.");
+        perror("Could not flush TxB.");
+        fclose(fp);
+        return -1;
+    }
+
+    fwrite(*(tx->data), 1, strlen(*(tx->data.val)), fp); // data
+    if (fflush(fp) != 0) {
+        perror("Could not flush Db.");
+        fclose(fp);
+        return -1;
+    }
+
+    tx->txe = 1; // other writes good, mark committed flag
+    fwrite(tx->txe, 1, sizeof(int), fp); // commit
+    fwrite("\n", 1, 1, fp); // entry delimiter
+    if (fflush(fp) != 0) {
+        perror("Could not flush TxE.");
         fclose(fp);
         return -1;
     }
