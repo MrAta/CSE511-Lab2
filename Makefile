@@ -2,17 +2,15 @@ all: server client client2 client3 client4 client5 client6 client7 client8
 
 server: server-part1 deps
 	gcc -g -c -std=gnu99 server-main.c -o server-main.o -pthread -lrt
-	gcc -g -std=gnu99 server-main.o server-part1.o db.o cache.o c0.o -o server -pthread -lrt
+	gcc -g -std=gnu99 server-main.o server-part1.o cache.o c0.o c1.o -o server -pthread -lrt
 
 server-part1:
 	gcc -g -c -std=gnu99 server-part1.c -o server-part1.o -pthread -lrt
 
 deps:
-	gcc -g -c -std=gnu99 db.c -o db.o
 	gcc -g -c -std=gnu99 cache.c -o cache.o
-
-
 	gcc -g -c -std=gnu99 c0.c -o c0.o
+	gcc -g -c -std=gnu99 c1.c -o c1.o
 client: client.c
 	gcc -g -std=gnu99 client.c -o client -pthread -lm
 
