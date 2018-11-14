@@ -259,9 +259,11 @@ void inorder(c0_node *T)
     }
 }
 void c0_dump(c0_node * T){
-  c0_node *nodes[MAX_C0_SIZE];
+  int _size = c0_size(T);
+
+  c0_node *nodes[_size];
   dumpToArray(T, nodes, 0);
-  c1_batch_insert(nodes, MAX_C0_SIZE);
+  c1_batch_insert(nodes, _size);
   return;
 }
 void dumpToArray(c0_node * T, c0_node *nodes[], int i){
