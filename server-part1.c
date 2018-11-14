@@ -24,8 +24,9 @@ my_timer_handler(int sig, siginfo_t *si, void *uc)
   pthread_mutex_lock(&c0_mutex);
   c0_node * c0_batch = _T;
   _T = NULL;
-  pthread_mutex_unlock(&c0_mutex);
+  // pthread_mutex_unlock(&c0_mutex);
   c0_dump(c0_batch);
+  pthread_mutex_unlock(&c0_mutex);
 }
 
 struct sockaddr_in address;
@@ -90,16 +91,17 @@ int server_1_put_request(char *key, char *value, char **ret_buffer, int *ret_siz
   else{
     _T = Insert(_T, key, value,0);
     if (c0_size(_T) == MAX_C0_SIZE){
-    c0_node * c0_batch = _T;
-    _T = NULL;
-    pthread_mutex_unlock(&c0_mutex);
+      c0_node * c0_batch = _T;
+      _T = NULL;
+      // pthread_mutex_unlock(&c0_mutex);
       c0_dump(c0_batch);
+      pthread_mutex_unlock(&c0_mutex);
     } else{
-    pthread_mutex_unlock(&c0_mutex);
+      pthread_mutex_unlock(&c0_mutex);
     }
   }
-
-  strncpy(*ret_buffer, "SUCCESS", 7);
+  *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+  strcpy(*ret_buffer, "SUCCESS");
   *ret_size = 7;
   pthread_mutex_lock(&cache_mutex);
   cache_put(key, value);
@@ -117,6 +119,8 @@ int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_
     strcpy(*ret_buffer, "DUPLICATE");
     *ret_size = 9;
     return EXIT_FAILURE;
+  }else{
+    pthread_mutex_unlock(&cache_mutex);
   }
   pthread_mutex_lock(&c0_mutex);
   if(Get(_T, key) != NULL){
@@ -131,15 +135,18 @@ int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_
   if (c0_size(_T) == MAX_C0_SIZE){
     c0_node * c0_batch = _T;
     _T = NULL;
-    pthread_mutex_unlock(&c0_mutex);
+    // pthread_mutex_unlock(&c0_mutex);
     c0_dump(c0_batch);
+    pthread_mutex_unlock(&c0_mutex);
   }else{
     pthread_mutex_unlock(&c0_mutex);
   }
   pthread_mutex_lock(&cache_mutex);
   cache_put(key, value);
   pthread_mutex_unlock(&cache_mutex);
-
+  *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+  strcpy(*ret_buffer, "SUCCESS");
+  *ret_size = 7;
   return EXIT_SUCCESS;
 }
 

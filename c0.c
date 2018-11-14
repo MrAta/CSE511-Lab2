@@ -21,7 +21,7 @@ c0_node * Insert(c0_node *T,char * key, char * value, int flag)
     else
         if(strcmp(key, T->key) > 0 )        // insert in right subtree
         {
-          printf("Higher\n" );
+        //   printf("Higher\n" );
             T->right=Insert(T->right, key, value,flag);
             if(BF(T)==-2)
                 if(strcmp(key, T->right->key) > 0)
@@ -32,7 +32,7 @@ c0_node * Insert(c0_node *T,char * key, char * value, int flag)
         else
             if(strcmp(key , T->key) <= 0)
             {
-              printf("Lower\n" );
+            //   printf("Lower\n" );
                 T->left=Insert(T->left, key, value,flag);
                 if(BF(T)==2)
                     if(strcmp(key, T->left->key) <=0)
@@ -265,12 +265,17 @@ void c0_dump(c0_node * T){
   return;
 }
 void dumpToArray(c0_node * T, c0_node *nodes[], int i){
-  if(T == NULL) return;
-  nodes[i] = T;
-  i++;
-  if(T->left != NULL)
+    if(T == NULL) return;
+    //   nodes[i] = T;
+    //   i++;
+    //   if(T->left != NULL)
     dumpToArray(T->left, nodes, i);
-  if(T->right != NULL)
+
+    nodes[i] = T;
+    printf("node inserted: %s\n", nodes[i]->key);
+    i++;
+
+    //   if(T->right != NULL)
     dumpToArray(T->right, nodes, i);
 }
 void dumpToFile(c0_node *T, FILE * f)
