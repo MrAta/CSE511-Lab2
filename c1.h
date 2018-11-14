@@ -11,14 +11,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include "common.h"
 
 
 #define DB_DIR "./.db"
 #define SSTABLE "sstable"
-#define MAX_KEY_SIZE 128
-#define MAX_VALUE_SIZE 256
-#define MAX_ENTRY_SIZE (MAX_VALUE_SIZE + MAX_KEY_SIZE)
-#define LINE_SIZE (MAX_ENTRY_SIZE + 3 + 4)
 #define MAX_C0_SIZE 100
 
 extern int file_counter;
