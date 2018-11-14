@@ -98,8 +98,8 @@ int server_1_put_request(char *key, char *value, char **ret_buffer, int *ret_siz
     pthread_mutex_unlock(&c0_mutex);
     }
   }
-
-  strncpy(*ret_buffer, "SUCCESS", 7);
+  *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+  strcpy(*ret_buffer, "SUCCESS");
   *ret_size = 7;
   pthread_mutex_lock(&cache_mutex);
   cache_put(key, value);
@@ -117,6 +117,8 @@ int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_
     strcpy(*ret_buffer, "DUPLICATE");
     *ret_size = 9;
     return EXIT_FAILURE;
+  }else{
+    pthread_mutex_unlock(&cache_mutex);
   }
   pthread_mutex_lock(&c0_mutex);
   if(Get(_T, key) != NULL){
@@ -139,7 +141,9 @@ int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_
   pthread_mutex_lock(&cache_mutex);
   cache_put(key, value);
   pthread_mutex_unlock(&cache_mutex);
-
+  *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
+  strcpy(*ret_buffer, "SUCCESS");
+  *ret_size = 7;
   return EXIT_SUCCESS;
 }
 
