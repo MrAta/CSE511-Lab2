@@ -4,6 +4,7 @@ typedef struct c0_node
     char * value;
     struct c0_node *left,*right;
     int ht;
+    int flag; //0:valid, 1: invlaid
 }c0_node;
 
 
