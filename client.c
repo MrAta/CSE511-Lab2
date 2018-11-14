@@ -10,12 +10,13 @@
 #include <math.h>
 #include <time.h>
 #include <string.h>
+#define TARGET_ADDR "127.0.0.1"
 #define PORT 8086
-#define N_KEY 1000 //total number of unique keys
+#define N_KEY 37 //total number of unique keys
 #define a 1.345675 //parameter for zipf distribution to obtain a 90% populariy for 10% of the keys.
 #define ratio 0.1 // get/put ratio
-#define key_size 1024
-#define value_size 10225
+#define key_size 10
+#define value_size 10
 #define MAX_ENTRY_SIZE 11264
 #define NUM_THREADS 25
 #define NUM_OPS 10000//total number of operation for workload
@@ -157,7 +158,7 @@ void write_all_keys(){
     send(sock , cmd , strlen(cmd) , 0 );
     valread = read( sock , buffer, MAX_ENTRY_SIZE);
     if(valread > 0){
-      printf("Inserted %d key(s).\n", N_KEY - i + 1);
+      printf("Inserted %s, %d key(s).\n", key, N_KEY - i + 1);
       }
     }
     close(sock);
@@ -249,7 +250,7 @@ int main(int argc, char const *argv[])
     serv_addr->sin_port = htons(PORT);
 
     // Convert IPv4 and IPv6 addresses from text to binary form
-    if(inet_pton(AF_INET, "172.17.0.3", &serv_addr->sin_addr)<=0)
+    if(inet_pton(AF_INET, TARGET_ADDR, &serv_addr->sin_addr)<=0)
     {
         printf("\nInvalid address/ Address not supported \n");
         return -1;

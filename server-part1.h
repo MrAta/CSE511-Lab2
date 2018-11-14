@@ -15,7 +15,7 @@
 #include <string.h>
 #include <pthread.h>
 #include "cache.h"
-#include "db.h"
+// #include "db.h"
 
 #define PORT 8086
 #define QUEUED_CONNECTIONS 5
@@ -79,5 +79,7 @@ int server_1_delete_request(char *key, char **ret_buffer, int *ret_size);
  * @return 0 is success 1 if failure
  */
 int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_size);
+
+
 
 #endif //P1_CSRF_SERVER_PART1_H

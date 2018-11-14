@@ -24,3 +24,5 @@ client8
 l2
 l3
 l4
+.vscode*
+.db*
