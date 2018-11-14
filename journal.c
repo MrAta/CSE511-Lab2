@@ -5,6 +5,7 @@
  */
 
 #include "journal.h"
+#include "server-part1.h"
 
 int log_transaction(transaction *tx)
 {
@@ -24,6 +25,7 @@ int log_transaction(transaction *tx)
     }
 
     fwrite(*(tx->db.data), 1, strlen(*(tx->db.data)), file); // issue data
+    // fwrite(tx->db.fd, 1, sizeof(int), file);
     if (fflush(file) != 0) {
         perror("Could not flush data.");
         fclose(file);
@@ -123,6 +125,63 @@ int flush_log()
 
 int recover()
 {
-    // during recover, check if tx is valid, otherwise ignore it bc it was removed
-    // replay in correct order, i.e. tx_log begin line to end
+    char *tmp_entry = NULL;
+    transaction *tmp_transaction = NULL;
+    char *key = NULL;
+    char *value = NULL;
+    char *request_type;
+    char *response = NULL;
+    char *save_ptr;
+    int response_size;
+
+    FILE *file = fopen("tx_log", "r");
+
+    if (file == NULL) {
+        perror("Could not open tx_log.");
+        return -1;
+    }
+
+    tmp_entry = (char *) calloc(MAX_JOURNAL_ENTRY_SIZE, sizeof(char));
+
+    while (1) { // should we be re-journaling while replaying journal? cant read/write to tx_log at the same time though
+        if (fgets(tmp_entry, MAX_JOURNAL_ENTRY_SIZE, file) != NULL) {
+            tmp_transaction = (transaction *)tmp_entry;
+            if(!tmp_transaction->valid) {
+                continue; // ignore
+            }
+
+            request_type = strtok_r(tmp_transaction->db.data, " ", &save_ptr);
+            key = strtok_r(NULL, " ", &save_ptr);
+            value = strtok_r(NULL, " ", &save_ptr);
+            if (request_type == NULL || key == NULL) {
+                printf("Invalid key/command received\n");
+            } else if (strncmp(request_type, "GET", 3) == 0) {
+                server_1_get_request(key, &response, &response_size);
+            } else if (strncmp(request_type, "PUT", 3) == 0) {
+                server_1_put_request(key, value, &response, &response_size);
+            } else if (strncmp(request_type, "INSERT", 6) == 0) {
+                server_1_insert_request(key, value, &response, &response_size);
+            } else if (strncmp(request_type, "DELETE", 6) == 0) {
+                server_1_delete_request(key, &response, &response_size);
+            } else { // *** incorrectly formatted journal entry(ies), ignore
+                continue;
+            }
+
+            if (response != NULL) {
+                free(response);
+            }
+
+            response = NULL;
+
+        } else { // end of file
+            break;
+        }
+    }
+
+    free(tmp_entry);
+    fclose(file);
+
+    flush_log();
+    
+    return 0;
 }

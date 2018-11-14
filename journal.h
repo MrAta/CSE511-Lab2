@@ -20,8 +20,9 @@ typedef struct TxB {
     int txid;
 } TxB;
 
-typedef struct Db {
+typedef struct Db { // server_handler should supply this
     char *data; // client request string
+    // int fd; // socket will be closed by the time we try to recover; during recovery just retry the requests, no notification to client
 } Db;
 
 typedef struct TxE {
