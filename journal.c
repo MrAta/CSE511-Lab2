@@ -9,6 +9,8 @@
 
 int log_transaction(transaction *tx)
 {
+    pthread_mutex_lock(&journal_mutex);
+
     FILE *file = fopen("tx_log", "a");
 
     if (file == NULL) {
@@ -52,11 +54,16 @@ int log_transaction(transaction *tx)
     // log entry successfully written
     
     fclose(file);
+
+    pthread_mutex_unlock(&journal_mutex);
+
     return tx->txb.txid;
 }
 
 int remove_transaction(int txid)
 {
+    pthread_mutex_lock(&journal_mutex);
+
     char *tmp_entry = NULL;
     transaction *tmp_transaction = NULL;
     int temp_txid = 0;
@@ -115,6 +122,8 @@ int remove_transaction(int txid)
     tmp_transaction = NULL;
     fclose(file);
 
+    pthread_mutex_unlock(&journal_mutex);
+
     return -1; // tx not found
 }
 
@@ -125,6 +134,8 @@ int flush_log()
 
 int recover()
 {
+    pthread_mutex_lock(&journal_mutex);
+
     char *tmp_entry = NULL;
     transaction *tmp_transaction = NULL;
     char *key = NULL;
@@ -182,6 +193,8 @@ int recover()
     fclose(file);
 
     flush_log();
+
+    pthread_mutex_unlock(&journal_mutex);
     
     return 0;
 }

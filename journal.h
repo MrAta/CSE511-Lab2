@@ -36,6 +36,8 @@ typedef struct transaction {
     TxE txe;
 } transaction;
 
+/* Globals */
+pthread_mutex_t journal_mutex;
 
 /* Function prototypes  */
 
