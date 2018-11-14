@@ -13,7 +13,9 @@
 
 int file_counter = 0;
 
-char *c1_search(FILE* file, char *key, int startline, int endline) ;
+c1_metadata *metadata;
+
+char *charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 int c1_batch_insert(c0_node *nodes[], int size) {
   //
@@ -25,8 +27,8 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   char *filename;
   char *keyval;
 
-  asprintf(&filename, "%s/%d", DB_DIR, file_counter++);
-  if (( fd = open(filename, O_WRONLY | O_CREAT, S_IWUSR)) == -1) {
+  asprintf(&filename, "%s/%d", DB_DIR, file_counter);
+  if (( fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR)) == -1) {
     free(filename);
     perror("Failed to open new file: ");
     return -1;
@@ -34,13 +36,14 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   free(filename);
   filename = NULL;
   for (int i = 0; i < size; i++) {
-    if (( rc = asprintf(&keyval, "%.*s %.*s %d\n", (int) MAX_KEY_SIZE, nodes[i]->key,
-                        (int) MAX_VALUE_SIZE,
+    keyval = calloc(LINE_SIZE, 1);
+    if (( rc = snprintf(keyval, (int) LINE_SIZE, "%s %s %d\n", nodes[i]->key,
                         nodes[i]->value, nodes[i]->flag)) == -1) {
       close(fd);
       fprintf(stderr, "Failed to create db entry\n");
       return -1;
     }
+//    bzero(keyval + rc + 1, LINE_SIZE - rc);
     if (write(fd, keyval, LINE_SIZE) == -1) {
       free(keyval);
       close(fd);
@@ -69,11 +72,14 @@ int c1_batch_insert(c0_node *nodes[], int size) {
       return -1;
     }
   }
-
-  // Update SSTable
-  // TODO: Fill if not using binary search
+  asprintf(&filename, "%s/%d", DB_DIR, file_counter);
+  FILE *currfile = fopen(filename, "r");
 
   // Complete
+  file_counter++;
+  // Update SSTable
+  update_sstable(currfile, metadata);
+  fclose(currfile);
   close(fd);
   if (oldfd != 0) {
     close(oldfd);
@@ -93,8 +99,8 @@ int merge(FILE *file1, FILE *file2) {
   size_t len1, len2;
   ssize_t size1 = 0, size2 = 0;
 
-  asprintf(&filename, "%s/%d", DB_DIR, file_counter++);
-  if (( mergefd = open(filename, O_WRONLY | O_CREAT, S_IWUSR)) == -1) {
+  asprintf(&filename, "%s/%d", DB_DIR, ++file_counter);
+  if (( mergefd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR)) == -1) {
     perror("Failed to open a new merge file: ");
     free(filename);
     return -1;
@@ -103,12 +109,14 @@ int merge(FILE *file1, FILE *file2) {
   while (1) {
     if (line1 == NULL) {
       size1 = getline(&line1, &len1, file1);
+      bzero(line1 + size1, LINE_SIZE - size1);
       if (size1 == -1) {
         break;
       }
     }
     if (line2 == NULL) {
       size2 = getline(&line2, &len2, file2);
+      bzero(line2 + size2, LINE_SIZE - size2);
       if (size2 == -1) {
         break;
       }
@@ -155,6 +163,7 @@ int merge(FILE *file1, FILE *file2) {
 
   if (size1 != -1) {
     while (( size1 = getline(&line1, &len1, file1)) != -1) {
+      bzero(line1 + size1, LINE_SIZE - size1);
       if (write(mergefd, line1, LINE_SIZE) == -1) {
         perror("Failed to write line: ");
         return -1;
@@ -164,6 +173,7 @@ int merge(FILE *file1, FILE *file2) {
 
   if (size2 != -1) {
     while (( size2 = getline(&line2, &len2, file2)) != -1) {
+      bzero(line2 + size2, LINE_SIZE - size2);
       if (write(mergefd, line2, LINE_SIZE) == -1) {
         perror("Failed to write line: ");
         return -1;
@@ -202,12 +212,95 @@ char *c1_get(char *key) {
   fseek(file, 0, SEEK_END);
   size = (size_t) ftell(file);
   numlines = (int) ( size / LINE_SIZE );
-  val = c1_search(file, key, 0, numlines);
+
+  // Lookup start and end in SSTable
+  int startline = (int) ( metadata->ssindex[char_to_idx(key[0])] / LINE_SIZE );
+  int endline = (int) ( metadata->ssindex[char_to_idx(key[0])] / LINE_SIZE );
+  if (endline > numlines) endline = numlines;
+  val = c1_search(file, key, startline, endline);
   fclose(file);
   return val;
 }
 
-char *c1_search(FILE* file, char *key, int startline, int endline) {
+int marshall_metadata(c1_metadata *md, char **buffer) {
+  //
+  //
+  // LOCAL VARIABLES
+  //
+  //
+  int seek = 0;
+  *buffer = malloc(sizeof(c1_metadata));
+
+  memcpy(( *buffer ) + seek, &( md->counter_value ), sizeof(int));
+  seek += sizeof(int);
+  memcpy(( *buffer ) + seek, md->ssindex, sizeof(md->ssindex));
+  seek += sizeof(md->ssindex);
+  return seek;
+}
+
+int unmarshall_metadata(c1_metadata *md, char *buffer) {
+  //
+  //
+  // LOCAL VARIABLES
+  //
+  //
+  int seek = 0;
+  memcpy(&( md->counter_value ), buffer, sizeof(int));
+  seek += sizeof(int);
+  memcpy(md->ssindex, buffer + seek, sizeof(md->ssindex));
+  seek += sizeof(md->ssindex);
+  return seek;
+}
+
+int dump_metadata(c1_metadata *md) {
+  //
+  //
+  // LOCAL VARIABLES
+  //
+  //
+  FILE *md_file;
+  char filename[strlen(DB_DIR) + strlen(SSTABLE) + 3];
+  char *buf = NULL;
+  int size;
+
+  snprintf(filename, strlen(DB_DIR) + strlen(SSTABLE) + 3, "%s/%s", DB_DIR, SSTABLE);
+  md_file = fopen(filename, "w");
+  size = marshall_metadata(md, &buf);
+  fwrite(buf, size, 1, md_file);
+  free(buf);
+  fclose(md_file);
+  return 0;
+}
+
+int load_metadata(c1_metadata **md) {
+  //
+  //
+  // LOCAL VARIABLES
+  //
+  //
+  FILE *md_file;
+  char filename[15];
+  char *buf = NULL;
+
+  *md = malloc(sizeof(c1_metadata));
+  buf = malloc(sizeof(c1_metadata));
+  snprintf(filename, 15, "%s/%s", DB_DIR, SSTABLE);
+  md_file = fopen(filename, "r");
+  if (md_file == NULL) {
+    return 0;
+  }
+  if (fread(buf, sizeof((*md)->ssindex) + sizeof(int), 1, md_file) == 0) {
+    // First run ever
+    free(buf);
+    return 0;
+  }
+
+  unmarshall_metadata(*md, buf);
+  free(buf);
+  return 0;
+}
+
+char *c1_search(FILE *file, char *key, int startline, int endline) {
   char *line, *r_key, *val;
   size_t len, valid;
 
@@ -232,4 +325,50 @@ char *c1_search(FILE* file, char *key, int startline, int endline) {
   } else {
     return NULL;
   }
+}
+
+void c1_init() {
+  //
+  //
+  // LOCAL VARIABLES
+  //
+  //
+  load_metadata(&metadata);
+}
+
+int update_sstable(FILE *dfile, c1_metadata *md) {
+  //
+  //
+  // LOCAL VARIABLES
+  //
+  //
+  char *line;
+  int boolmask[INDEX_SIZE] = { 0 };
+  int idx;
+  long offset;
+  size_t bytes_read;
+
+  line = calloc(LINE_SIZE, 1);
+  while ((bytes_read = fread(line, LINE_SIZE, 1, dfile)) != 0) {
+    idx = char_to_idx(line[0]);
+    if (!boolmask[idx]) { // First occurrence of the given character
+      offset = ftell(dfile) - (bytes_read * LINE_SIZE);
+      md->ssindex[idx] = offset;
+      boolmask[idx] = 1;
+    }
+    free(line);
+    line = calloc(LINE_SIZE, 1);
+  }
+  free(line);
+  md->counter_value = file_counter;
+  dump_metadata(metadata);
+  return 0;
+}
+
+int char_to_idx(char c) {
+  char *ptr = strchr(charset, c);
+  if (ptr) {
+    return (int) ( ptr - charset );
+  }
+  return -1;
 }

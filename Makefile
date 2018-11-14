@@ -11,7 +11,7 @@ server-part1:
 deps:
 	gcc -g -c -std=gnu99 cache.c -o cache.o
 	gcc -g -c -std=gnu99 c0.c -o c0.o
-	gcc -g -c -std=gnu99 c1.c -o c1.o
+	gcc -g3 -c -std=gnu99 c1.c -o c1.o
 client: client.c
 	gcc -g -std=gnu99 client.c -o client -pthread -lm
 
