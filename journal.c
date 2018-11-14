@@ -1,3 +1,9 @@
+/**
+ * @file journal.c
+ * 
+ * Function implementations for journaling.
+ */
+
 #include "journal.h"
 
 int log_transaction(transaction *tx)
@@ -32,8 +38,8 @@ int log_transaction(transaction *tx)
         return -1;
     }
 
-    tx->txe = 1; // other writes good, mark committed flag
-    fwrite(tx->txe, 1, sizeof(int), file); // issue commit
+    tx->txe.committed = 1; // other writes good, mark committed flag
+    fwrite(tx->txe.committed, 1, sizeof(int), file); // issue commit
     fwrite("\n", 1, 1, file); // entry delimiter
     if (fflush(file) != 0) {
         perror("Could not flush TxE.");
