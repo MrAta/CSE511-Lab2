@@ -21,6 +21,10 @@ BTREE_NODE *btree_create() {
   //
   BTREE_NODE *root;
   int first_run = 1;
+  if (chdir(DB_DIR) == -1) {
+    perror("Could not open db dir: ");
+    exit(1);
+  }
   if (access(ROOT_FNAME, F_OK) != -1) {
     first_run = 0;
   }
@@ -70,14 +74,22 @@ int btree_insert_non_full(BTREE_NODE *node, KEY_VAL *key_val) {
 //      node->children[0] = calloc(1, sizeof(BTREE_NODE));
 //    }
     if (!node->children[i]->allocated) {
-      node->children[i] = allocate_node(node->children[i]->filename);
+      node->children[i] = allocate_node(
+        node->children[i]->filename);// TODO: Fix memory leak here. Add cleanup call
     }
     if (node->children[i]->n == NODE_LIMIT) {
       btree_split_child(node, i);
-      if (lsm_key_cmp(key_val->key, node->keys[i]->key)) {
+      if (lsm_key_cmp(key_val->key, node->keys[i]->key) > 0) {
         i++;
       }
     }
+    BTREE_NODE *next_child = node->children[i];
+    if (!next_child->allocated) {
+      next_child = allocate_node(next_child->filename);
+    }
+    // TODO: Debug cleanup
+//    cleanup(node->children[i], 0);
+    node->children[i] = next_child;
     return btree_insert_non_full(node->children[i], key_val);
   }
 }
@@ -124,15 +136,16 @@ int btree_insert(BTREE_NODE **root, KEY_VAL *key_val) {
     BTREE_NODE *newnode = allocate_node(NULL);
     char *tmp = "tmp";
     char *newname = newnode->filename;
-    rename((*root)->filename, tmp);
-    (*root)->filename = tmp;
+    rename(( *root )->filename, tmp);
+    ( *root )->filename = tmp;
     rename(newnode->filename, ROOT_FNAME);
     newnode->filename = ROOT_FNAME;
-    rename((*root)->filename, newname);
-    (*root)->filename = newname;
+    rename(( *root )->filename, newname);
+    ( *root )->filename = newname;
     *root = newnode;
     ( *root )->n = 0;
     ( *root )->children[0] = oldroot;
+    ( *root )->num_children = 1;
     ( *root )->isLeaf = 0;
     btree_split_child(newnode, 0);
     return btree_insert_non_full(newnode, key_val);
@@ -170,6 +183,7 @@ int btree_split_child(BTREE_NODE *node, int index) {
     node->children[j + 1] = node->children[j];
   }
   node->children[index + 1] = z;
+  node->num_children += 1;
   for (int j = node->n - 1; j >= index; j--) {
     node->keys[j + 1] = node->keys[j];
   }
@@ -278,6 +292,9 @@ int marshall(BTREE_NODE *node, char **buffer) {
   memcpy(dest + current_offset, &( node->n ), sizeof(int));
   current_offset += sizeof(int);
 
+  memcpy(dest + current_offset, &( node->num_children ), sizeof(int));
+  current_offset += sizeof(int);
+
   for (int i = 0; i < node->n; i++) {
     // Marshall individual Key Values
     kvsize = marshall_kv(node->keys[i], &kvbuf);
@@ -287,8 +304,8 @@ int marshall(BTREE_NODE *node, char **buffer) {
     current_offset += kvsize;
   }
   if (!node->isLeaf) {
-    for (int i = 0; i < node->n; i++) {
-      memcpy(dest + current_offset, &( node->children[i]->filename ),
+    for (int i = 0; i < node->num_children; i++) {
+      memcpy(dest + current_offset, node->children[i]->filename,
              strlen(node->children[i]->filename));
       current_offset += MAX_FILENAME_SIZE;
     }
@@ -315,6 +332,9 @@ int unmarshall(BTREE_NODE *node, char *buf) {
   memcpy(&( node->n ), buf + seek, sizeof(int));
   seek += sizeof(int);
 
+  memcpy(&( node->num_children ), buf + seek, sizeof(int));
+  seek += sizeof(int);
+
 //  if (node->keys == NULL) {
 //    node->keys = malloc(sizeof(KEY_VAL *) * NODE_LIMIT); // TODO: Figure out actual size
 //  }
@@ -328,7 +348,7 @@ int unmarshall(BTREE_NODE *node, char *buf) {
     seek += unmarshall_kv(node->keys[i], kvbuf);
   }
   if (!node->isLeaf) {
-    for (int i = 0; i < node->n; i++) {
+    for (int i = 0; i < node->num_children; i++) {
       node->children[i] = malloc(sizeof(BTREE_NODE));
       node->children[i]->filename = malloc(MAX_FILENAME_SIZE);
       memcpy(node->children[i]->filename, buf + seek, MAX_FILENAME_SIZE);

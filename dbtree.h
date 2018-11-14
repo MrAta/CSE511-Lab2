@@ -8,13 +8,14 @@
 
 #define PAGE_SIZE 4 * 2048
 //#define NODE_LIMIT 1000
-#define ROOT_FNAME "root.db"
+#define ROOT_FNAME "root"
+#define DB_DIR "./.db"
 #define MAX_FILENAME_SIZE 128
 // need to check over these
 #define MAX_KEY_SIZE 16
 #define MAX_VALUE_SIZE 64
 #define MAX_ENTRY_SIZE 80
-#define NODE_LIMIT 38
+#define NODE_LIMIT 35
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -53,6 +54,7 @@ typedef struct BTREE_NODE {
   char *filename; // File descriptor to the node
   int isLeaf; // Whether the node is a leaf node
   int n; // Current number of keys
+  int num_children; // Current number of children
   int allocated;
   KEY_VAL *keys[NODE_LIMIT];
   struct BTREE_NODE *children[NODE_LIMIT];
@@ -111,7 +113,7 @@ int btree_insert_non_full(BTREE_NODE *node, KEY_VAL *key_val);
  * @param node The node to flush data to disk
  * @return 0 if successful, -1 if failure
  */
-int btree_disk_write(BTREE_NODE *node)
+int btree_disk_write(BTREE_NODE *node);
 
 /**
  * Splits a full non-leaf child into smaller nodes as needed by

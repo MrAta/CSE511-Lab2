@@ -92,7 +92,7 @@ void generate_value(char *value) {
 }
 
 BTREE_NODE *setup() {
-  remove(ROOT_FNAME);
+  chdir("/cse511-p2");
   return btree_create();
 }
 
