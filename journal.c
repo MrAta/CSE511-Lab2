@@ -194,7 +194,7 @@ int recover()
     free(tmp_entry);
     fclose(file);
 
-    flush_log();
+    remove("tx_log"); // flush_log but already have lock
 
     pthread_mutex_unlock(&journal_mutex);
     
