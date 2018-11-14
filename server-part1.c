@@ -24,8 +24,9 @@ my_timer_handler(int sig, siginfo_t *si, void *uc)
   pthread_mutex_lock(&c0_mutex);
   c0_node * c0_batch = _T;
   _T = NULL;
-  pthread_mutex_unlock(&c0_mutex);
+  // pthread_mutex_unlock(&c0_mutex);
   c0_dump(c0_batch);
+  pthread_mutex_unlock(&c0_mutex);
 }
 
 struct sockaddr_in address;
@@ -90,12 +91,13 @@ int server_1_put_request(char *key, char *value, char **ret_buffer, int *ret_siz
   else{
     _T = Insert(_T, key, value,0);
     if (c0_size(_T) == MAX_C0_SIZE){
-    c0_node * c0_batch = _T;
-    _T = NULL;
-    pthread_mutex_unlock(&c0_mutex);
+      c0_node * c0_batch = _T;
+      _T = NULL;
+      // pthread_mutex_unlock(&c0_mutex);
       c0_dump(c0_batch);
+      pthread_mutex_unlock(&c0_mutex);
     } else{
-    pthread_mutex_unlock(&c0_mutex);
+      pthread_mutex_unlock(&c0_mutex);
     }
   }
   *ret_buffer = calloc(MAX_ENTRY_SIZE, sizeof(char *));
@@ -133,8 +135,9 @@ int server_1_insert_request(char *key, char *value, char **ret_buffer, int *ret_
   if (c0_size(_T) == MAX_C0_SIZE){
     c0_node * c0_batch = _T;
     _T = NULL;
-    pthread_mutex_unlock(&c0_mutex);
+    // pthread_mutex_unlock(&c0_mutex);
     c0_dump(c0_batch);
+    pthread_mutex_unlock(&c0_mutex);
   }else{
     pthread_mutex_unlock(&c0_mutex);
   }
