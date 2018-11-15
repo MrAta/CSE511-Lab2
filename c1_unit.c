@@ -52,7 +52,7 @@ int main() {
   }
   rc = c1_batch_insert(node, MAX_C0_SIZE);
   assert(rc == 0);
-  int check = access("./.db/1", R_OK);
+  int check = access("./.db/2", R_OK);
   assert(check == 0);
 
   printf("Successfully ran all tests\n");

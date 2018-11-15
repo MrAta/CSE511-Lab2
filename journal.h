@@ -11,10 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include "common.h"
 
 /* Defines */
-#define MAX_JOURNAL_ENTRY_SIZE (sizeof(transaction) - sizeof(char *) + MAX_ENTRY_SIZE)
+#define MAX_JOURNAL_ENTRY_SIZE (9 +MAX_ENTRY_SIZE)
 
 typedef struct TxB {
     int txid;

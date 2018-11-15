@@ -88,8 +88,7 @@ int c1_batch_insert(c0_node *nodes[], int size) {
     }
   }
   asprintf(&filename, "%s/%d", DB_DIR, file_counter);
-  int ssfd = open(filename, O_RDONLY | O_CREAT, S_IRUSR);
-  FILE *currfile = fdopen(ssfd, "r");
+  FILE *currfile = fopen(filename, "r");
 
   // Complete
   file_counter++;
@@ -97,7 +96,6 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   update_sstable(currfile, metadata);
   fclose(currfile);
   close(fd);
-  close(ssfd);
   if (oldfd != 0) {
     close(oldfd);
   }
@@ -127,16 +125,16 @@ int merge(FILE *file1, FILE *file2) {
 
   while (1) {
     if (line1 == NULL) {
-      size1 = getline(&line1, &len1, file1);
-      bzero(line1 + size1, LINE_SIZE - size1);
-      if (size1 == -1) {
+      line1 = calloc(LINE_SIZE, 1);
+      size1 = fread(line1, LINE_SIZE, 1, file1);
+      if (size1 == 0) {
         break;
       }
     }
     if (line2 == NULL) {
-      size2 = getline(&line2, &len2, file2);
-      bzero(line2 + size2, LINE_SIZE - size2);
-      if (size2 == -1) {
+      line2 = calloc(LINE_SIZE, 1);
+      size2 = fread(line2, LINE_SIZE, 1, file2);
+      if (size2 == 0) {
         break;
       }
     }
@@ -180,23 +178,45 @@ int merge(FILE *file1, FILE *file2) {
     free(val2);
   }
 
-  if (size1 != -1) {
-    while (( size1 = getline(&line1, &len1, file1)) != -1) {
-      bzero(line1 + size1, LINE_SIZE - size1);
+  if (size2 == 0) { // File 2 ran out of data. Copy rest of file 1.
+    // Guaranteed that line1 is allocated.
+    assert(line1 != NULL);
+    if (write(mergefd, line1, LINE_SIZE) == -1) {
+      perror("Failed to write line: ");
+      return -1;
+    }
+    free(line1);
+    line1 = NULL;
+    line1 = calloc(LINE_SIZE, 1);
+    // Read rest of file1
+    while (( size1 = fread(line1, LINE_SIZE, 1, file1)) != 0) {
       if (write(mergefd, line1, LINE_SIZE) == -1) {
         perror("Failed to write line: ");
         return -1;
       }
+      free(line1);
+      line1 = calloc(LINE_SIZE, 1);
     }
   }
 
-  if (size2 != -1) {
-    while (( size2 = getline(&line2, &len2, file2)) != -1) {
-      bzero(line2 + size2, LINE_SIZE - size2);
+  if (size1 == 0) { // File 1 complete. Copy rest from File 2
+    if (line2 != NULL) { // Last key read from file 2 still not added
       if (write(mergefd, line2, LINE_SIZE) == -1) {
         perror("Failed to write line: ");
         return -1;
       }
+      free(line2);
+      line2 = NULL;
+    }
+    line2 = calloc(LINE_SIZE, 1);
+    while (fread(line2, LINE_SIZE, 1, file2) != 0) {
+      if (write(mergefd, line2, LINE_SIZE) == -1) {
+        perror("Failed to write line: ");
+        return -1;
+      }
+      free(line2);
+      line2 = NULL;
+      line2 = calloc(LINE_SIZE, 1);
     }
   }
   if (line1 != NULL) {
@@ -207,6 +227,7 @@ int merge(FILE *file1, FILE *file2) {
   }
   fclose(file1);
   fclose(file2);
+  close(mergefd);
   return 0;
 }
 

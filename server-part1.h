@@ -15,6 +15,7 @@
 #include <string.h>
 #include <pthread.h>
 #include "cache.h"
+#include "journal.h"
 // #include "db.h"
 
 #define PORT 8086

@@ -171,11 +171,14 @@ int server_1_delete_request(char *key, char **ret_buffer, int *ret_size) {
 
 void *server_handler(void *arg) {
   int sockfd = *(int *) arg;
-  char *input_line = (char *) calloc(MAX_ENTRY_SIZE, sizeof(char *));
+  char *input_line = (char *) calloc(MAX_ENTRY_SIZE, sizeof(char));
+  char *copy_input_line = (char *) calloc(MAX_ENTRY_SIZE, sizeof(char));
   char *tokens, *response = NULL,  *save_ptr;
   int response_size;
+  transaction txn;
   while (read(sockfd, input_line, MAX_ENTRY_SIZE)) {
     // db_connect();
+    strncpy(copy_input_line, input_line, MAX_ENTRY_SIZE);
     tokens = strtok_r(input_line, " ", &save_ptr);
     char *key = strtok_r(NULL, " ", &save_ptr);
     char *value = strtok_r(NULL, " ", &save_ptr);
@@ -186,12 +189,18 @@ void *server_handler(void *arg) {
       server_1_get_request(key, &response, &response_size);
       write(sockfd, response, (size_t) response_size);
     } else if (strncmp(tokens, "PUT", 3) == 0) {
+      txn.db.data = copy_input_line;
+      while (log_transaction(&txn) != 0);
       server_1_put_request(key, value, &response, &response_size);
       write(sockfd, response, (size_t) response_size);
     } else if (strncmp(tokens, "INSERT", 6) == 0) {
+      txn.db.data = copy_input_line;
+      while (log_transaction(&txn) != 0);
       server_1_insert_request(key, value, &response, &response_size);
       write(sockfd, "OK", 2);
     } else if (strncmp(tokens, "DELETE", 6) == 0) {
+      txn.db.data = copy_input_line;
+      while (log_transaction(&txn) != 0);
       server_1_delete_request(key, &response, &response_size);
       write(sockfd, response, (size_t) response_size);
     } else {
