@@ -62,7 +62,7 @@ int log_transaction(transaction *tx) {
   }
 
   tx->txe.committed = 1; // other writes good, mark committed flag
-  if (fwrite(&( tx->txe.committed ), 1, sizeof(int) ==0, file) ||
+  if (fwrite(&( tx->txe.committed ), 1, sizeof(int) , file) ==0 ||
       fwrite("\n", 1, 1, file) == 0) { // issue commit
     stat("tx_log", &st);
     ftruncate(fileno(file), st.st_size - sizeof(int) - strlen(tx->db.data) - sizeof(int));
