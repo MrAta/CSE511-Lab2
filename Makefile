@@ -1,42 +1,55 @@
-# all: server client client2 client3 client4 client5 client6 client7 client8
-all: server client
+LINK=gcc
+CC=gcc
+CFLAGS=-c -g3 -ggdb -std=gnu99 -Wall -I. -I/opt/local/include
+LINKFLAGS=-L. -g3 -ggdb -std=gnu99 -pthread -L/opt/local/lib
+LIBFLAGS=-shared -Wall -pthread
+LINKLIBS=-lm -lrt
+TARGETS=server client
+OBJECTS= server-main.o \
+			db.o \
+			cache.o \
+			c1.o \
+			c0.o \
+			journal.o \
+			server-part1.o
+TEST_TARGETS= c1unit
 
-server: server-part1 deps
-	gcc -g -c -std=gnu99 server-main.c -o server-main.o -pthread -lrt
-	gcc -g -std=gnu99 server-main.o server-part1.o cache.o c0.o c1.o -o server -pthread -lrt
+all: $(TARGETS)
 
-server-part1:
-	gcc -g -c -std=gnu99 server-part1.c -o server-part1.o -pthread -lrt
+test: $(TEST_TARGETS)
 
-deps:
-	gcc -g -c -std=gnu99 cache.c -o cache.o
-	gcc -g -c -std=gnu99 c0.c -o c0.o
-	gcc -g3 -c -std=gnu99 c1.c -o c1.o
+.c.o:
+	$(CC) $(CFLAGS) -o $@ $<
+
+server: $(OBJECTS)
+	$(LINK) $(LINKFLAGS) $^ $(LINKLIBS) -o $@
+
+c1unit: c1_unit.c c1.o
+	$(CC) $(LINKFLAGS) $^ $(LINKLIBS) -o $@
+
 client: client.c
 	gcc -g -std=gnu99 client.c -o client -pthread -lm
 
-# client7: client7.c
-# 	gcc -g -std=gnu99 client7.c -o client7 -pthread -lm
+client7: client7.c
+	gcc -g -std=gnu99 client7.c -o client7 -pthread -lm
 
-# client2: client2.c
-# 	gcc -g -std=gnu99 client2.c -o client2 -pthread
+client2: client2.c
+	gcc -g -std=gnu99 client2.c -o client2 -pthread
 
-# client3: client3.c
-# 	gcc -g -std=gnu99 client3.c -o client3 -pthread
+client3: client3.c
+	gcc -g -std=gnu99 client3.c -o client3 -pthread
 
-# client4: client4.c
-# 	gcc -g -std=gnu99 client4.c -o client4 -pthread
+client4: client4.c
+	gcc -g -std=gnu99 client4.c -o client4 -pthread
 
-# client5: client5.c
-# 	gcc -g -std=gnu99 client5.c -o client5 -pthread
+client5: client5.c
+	gcc -g -std=gnu99 client5.c -o client5 -pthread
 
-# client6: client6.c
-# 	gcc -g -std=gnu99 client6.c -o client6 -pthread
+client6: client6.c
+	gcc -g -std=gnu99 client6.c -o client6 -pthread
 
-# client8: client8.c
-# 	gcc -g -std=gnu99 client8.c -o client8 -pthread -lm
+client8: client8.c
+	gcc -g -std=gnu99 client8.c -o client8 -pthread -lm
 
-# clean:
-# 	rm server client client2 client3 client4 client5 client6 client7 client8 *.o
 clean:
-	rm server client *.o
+	rm server client client2 client3 client4 client5 client6 client7 client8 btreeunit *.o
