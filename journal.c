@@ -35,7 +35,7 @@ int log_transaction(transaction *tx) {
 
   data_len = tx->db.data_len; // length prefix for easy unmarshalling
   if (!fwrite(&(tx->db.data_len), 1, sizeof(size_t), file) || // TODOD:FIXIXXXXXX al these truncs
-      !fwrite(tx->db.data, 1, data_len, file) || 
+      !fwrite(tx->db.data, 1, data_len, file) ||
       !fwrite("\0", 1, 1, file)) { // issue data
     stat("tx_log", &st);
     ftruncate(fileno(file), st.st_size - sizeof(int));
@@ -96,8 +96,8 @@ int log_transaction(transaction *tx) {
 
   pthread_mutex_unlock(&journal_mutex);
 
-  // return tx->txb.txid;
-  return 0; // this should be fine if not using txid
+  return tx->txb.txid;
+  // return 0; // this should be fine if not using txid
 }
 
 int remove_transaction(int txid) {
@@ -107,6 +107,7 @@ int remove_transaction(int txid) {
   transaction *tmp_transaction = (transaction *) calloc(sizeof(transaction), sizeof(char));
   int temp_txid = 0;
   int offset = 0;
+  int z = 0;
 
   FILE *file = fopen("tx_log", "r+");
 
@@ -135,7 +136,7 @@ int remove_transaction(int txid) {
         // TODO: Possible problem location -- done
         offset = (sizeof(int) + sizeof(int) + 1) * -1; // seek back to position to overwrite 4 byte 'valid' variable
         fseek(file, offset, SEEK_CUR);
-        fwrite(0, 1, sizeof(int), file); // mark transaction as invalid (subsequent recovers/removes should ignore it)
+        fwrite(&z, 1, sizeof(int), file); // mark transaction as invalid (subsequent recovers/removes should ignore it)
         if (fflush(file) != 0) {
           perror("Could not remove transaction.");
           free(tmp_entry);
@@ -158,6 +159,11 @@ int remove_transaction(int txid) {
     }
   }
 
+  if (tmp_transaction->db.data) {
+    free(tmp_transaction->db.data);
+  }
+
+  free(tmp_transaction);
   free(tmp_entry);
   tmp_entry = NULL;
   tmp_transaction = NULL;
@@ -232,6 +238,11 @@ int recover() {
     }
   }
 
+  if (tmp_transaction->db.data) {
+    free(tmp_transaction->db.data);
+  }
+
+  free(tmp_transaction);
   free(tmp_entry);
   fclose(file);
 
@@ -251,6 +262,7 @@ int unmarshall_journal_entry(transaction *tmp_transaction, char *tmp_entry) {
   memcpy(&(tmp_transaction->db.data_len), entry_pos, sizeof(size_t)); // length prefix
   entry_pos += sizeof(size_t);
 
+  tmp_transaction->db.data = (char *) calloc(tmp_transaction->db.data_len + 1, sizeof(char));
   memcpy(tmp_transaction->db.data, entry_pos, tmp_transaction->db.data_len + 1); // data and null byte
   entry_pos += tmp_transaction->db.data_len + 1;
 
