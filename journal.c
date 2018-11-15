@@ -1,6 +1,6 @@
 /**
  * @file journal.c
- * 
+ *
  * Function implementations for journaling.
  */
 
@@ -12,12 +12,11 @@ int log_transaction(transaction *tx) {
   FILE *file = fopen("tx_log", "a");
   struct stat st;
   size_t data_len = 0;
-
+  
   if (file == NULL) {
     perror("Could not open tx_log.");
     return -1;
   }
-
   tx->txb.txid = rand();
   if (!fwrite(&(tx->txb.txid), 1, sizeof(int), file)) {// issue begin
     perror("Could not write TxB: ");
@@ -93,7 +92,6 @@ int log_transaction(transaction *tx) {
   }
 
   // log entry successfully written
-
   fclose(file);
 
   pthread_mutex_unlock(&journal_mutex);
