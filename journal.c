@@ -96,8 +96,32 @@ int log_transaction(transaction *tx) {
 
   pthread_mutex_unlock(&journal_mutex);
 
-  return tx->txb.txid;
-  // return 0; // this should be fine if not using txid
+  // return tx->txb.txid;
+  return 0; // this should be fine if not using txid
+}
+
+int unmarshall_journal_entry(transaction *tmp_transaction, char *tmp_entry) {
+  char *entry_pos = tmp_entry;
+
+  memcpy(&(tmp_transaction->txb.txid), entry_pos, sizeof(int)); // txid
+  entry_pos += sizeof(int);
+
+  memcpy(&(tmp_transaction->db.data_len), entry_pos, sizeof(size_t)); // length prefix
+  entry_pos += sizeof(size_t);
+
+  tmp_transaction->db.data = (char *) calloc(tmp_transaction->db.data_len + 1, sizeof(char));
+  memcpy(tmp_transaction->db.data, entry_pos, tmp_transaction->db.data_len + 1); // data and null byte
+  entry_pos += tmp_transaction->db.data_len + 1;
+
+  memcpy(&(tmp_transaction->valid), entry_pos, sizeof(int)); // valid
+  entry_pos += sizeof(int);
+
+  memcpy(&(tmp_transaction->txe.committed), entry_pos, sizeof(int)); // committed
+  entry_pos += sizeof(int);
+
+  // dont need newline char
+
+  return 0;
 }
 
 int remove_transaction(int txid) {
@@ -119,7 +143,18 @@ int remove_transaction(int txid) {
 
   while (1) {
     if (fgets(tmp_entry, MAX_JOURNAL_ENTRY_SIZE, file) != NULL) { // read to newline (including newline char, and advances file position to next entry?)
-      unmarshall_journal_entry(tmp_transaction, tmp_entry);
+      if (unmarshall_journal_entry(tmp_transaction, tmp_entry) != 0) {
+        perror("Could not unmarshall journal entry");
+        free(tmp_transaction);
+        free(tmp_entry);
+        tmp_entry = NULL;
+        tmp_transaction = NULL;
+        fclose(file);
+
+        pthread_mutex_unlock(&journal_mutex);
+
+        return -1;
+      }
       // tmp_transaction = (transaction *) tmp_entry; // TODO: Possible problem location -- done
       temp_txid = tmp_transaction->txb.txid;
       if (temp_txid == txid) { // found transaction in log
@@ -204,7 +239,18 @@ int recover() {
 
   while (1) { // should we be re-journaling while replaying journal? cant read/write to tx_log at the same time though
     if (fgets(tmp_entry, MAX_JOURNAL_ENTRY_SIZE, file) != NULL) {
-      unmarshall_journal_entry(tmp_transaction, tmp_entry);
+      if (unmarshall_journal_entry(tmp_transaction, tmp_entry) != 0) {
+        perror("Could not unmarshall journal entry");
+        free(tmp_transaction);
+        free(tmp_entry);
+        tmp_entry = NULL;
+        tmp_transaction = NULL;
+        fclose(file);
+
+        pthread_mutex_unlock(&journal_mutex);
+
+        return -1;
+      }
 
       if (!tmp_transaction->valid) {
         continue; // ignore
@@ -249,30 +295,6 @@ int recover() {
   remove("tx_log"); // flush_log but already have lock
 
   pthread_mutex_unlock(&journal_mutex);
-
-  return 0;
-}
-
-int unmarshall_journal_entry(transaction *tmp_transaction, char *tmp_entry) {
-  char *entry_pos = tmp_entry;
-
-  memcpy(&(tmp_transaction->txb.txid), entry_pos, sizeof(int)); // txid
-  entry_pos += sizeof(int);
-
-  memcpy(&(tmp_transaction->db.data_len), entry_pos, sizeof(size_t)); // length prefix
-  entry_pos += sizeof(size_t);
-
-  tmp_transaction->db.data = (char *) calloc(tmp_transaction->db.data_len + 1, sizeof(char));
-  memcpy(tmp_transaction->db.data, entry_pos, tmp_transaction->db.data_len + 1); // data and null byte
-  entry_pos += tmp_transaction->db.data_len + 1;
-
-  memcpy(&(tmp_transaction->valid), entry_pos, sizeof(int)); // valid
-  entry_pos += sizeof(int);
-
-  memcpy(&(tmp_transaction->txe.committed), entry_pos, sizeof(int)); // committed
-  entry_pos += sizeof(int);
-
-  // dont need newline char
 
   return 0;
 }

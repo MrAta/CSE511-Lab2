@@ -51,6 +51,14 @@ pthread_mutex_t journal_mutex;
 int log_transaction(transaction *tx);
 
 /**
+ * Unmarshalls data into transaction struct from serialized journal entry
+ * @param tmp_transaction output struct for data
+ * @param tmp_entry serialized data
+ * @return 0: success, -1: error
+ */
+int unmarshall_journal_entry(transaction *tmp_transaction, char *tmp_entry);
+
+/**
  * Remove transaction (on failed c0 invocation?)
  * @param txid the transaction id to search for and remove
  * @return 0: success, -1: error
@@ -68,13 +76,5 @@ int flush_log();
  * @return 0: success, -1: error
  */
 int recover();
-
-/**
- * Unmarshalls data into transaction struct from serialized journal entry
- * @param tmp_transaction output struct for data
- * @param tmp_entry serialized data
- * @return 0: success, -1: error
- */
-int unmarshall_journal_entry(transaction *tmp_transaction, char *tmp_entry);
 
 #endif /* P1_CRSF_JOURNAL_H */
