@@ -27,8 +27,8 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   int fd, oldfd = 0, rc;
   char *filename;
   char *keyval;
-  printf("Start: filecounter: %d\n", ++file_counter);
   asprintf(&filename, "%s/%d", DB_DIR, ++file_counter);
+  printf("Start: filecounter: %d\n", file_counter);
   // printf("C1: %s\n", filename);
   fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IRWXG);
 
