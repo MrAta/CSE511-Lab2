@@ -219,26 +219,43 @@ void c0_dump(c0_node *T) {
 
   c0_node *nodes[_size];
   dumpToArray(T, nodes, 0);
+  // for(int i=0; i<_size; i++)printf("Index:%d, Node: %p\n",i,nodes[i] );
   if (!c1_batch_insert(nodes, _size)) {
     flush_log();
   }
   return;
 }
 
-void dumpToArray(c0_node *T, c0_node *nodes[], int i) {
-  if (T == NULL) return;
-  //   nodes[i] = T;
-  //   i++;
-  //   if(T->left != NULL)
-  dumpToArray(T->left, nodes, i);
+int dumpToArray(c0_node * T, c0_node *nodes[], int i){
+    if(T == NULL) return i;
+    //   nodes[i] = T;
+    //   i++;
+    //   if(T->left != NULL)
+    i = dumpToArray(T->left, nodes, i);
 
-  nodes[i] = T;
-  printf("node inserted: %s\n", nodes[i]->key);
-  i++;
+    nodes[i] = T;
+    // printf("node inserted at %d: %s\n",i, nodes[i]->key);//printf("node inserted: %s\n", nodes[i]->key);
+    i++;
 
-  //   if(T->right != NULL)
-  dumpToArray(T->right, nodes, i);
+    //   if(T->right != NULL)
+    i = dumpToArray(T->right, nodes, i);
+
+    // return i++;
 }
+// void dumpToArray(c0_node *T, c0_node *nodes[], int i) {
+//   if (T == NULL) return;
+//   //   nodes[i] = T;
+//   //   i++;
+//   //   if(T->left != NULL)
+//   dumpToArray(T->left, nodes, i);
+//
+//   nodes[i] = T;
+//   printf("node inserted at %d: %s\n",i, nodes[i]->key);
+//   i++;
+//
+//   //   if(T->right != NULL)
+//   dumpToArray(T->right, nodes, i);
+// }
 
 void dumpToFile(c0_node *T, FILE *f) {
 

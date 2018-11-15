@@ -26,17 +26,22 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   int fd, oldfd = 0, rc;
   char *filename;
   char *keyval;
-
+  printf("Start: filecounter: %d\n", file_counter);
   asprintf(&filename, "%s/%d", DB_DIR, file_counter);
-  if (( fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IWUSR)) == -1) {
+  // printf("C1: %s\n", filename);
+  fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IRWXG);
+
+  if (fd == -1) {
     free(filename);
     perror("Failed to open new file: ");
     return -1;
   }
+  printf("Created %s with %d\n", filename,file_counter);
   free(filename);
   filename = NULL;
   for (int i = 0; i < size; i++) {
     keyval = calloc(LINE_SIZE, 1);
+
     if (( rc = snprintf(keyval, (int) LINE_SIZE, "%s %s %d\n", nodes[i]->key,
                         nodes[i]->value, nodes[i]->flag)) == -1) {
       close(fd);
@@ -57,15 +62,16 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   if (file_counter > 0) {
     // Merge with existing file
     asprintf(&filename, "%s/%d", DB_DIR, file_counter - 1);
-    if (( oldfd = open(filename, O_RDONLY, S_IRUSR)) == -1) {
+
+    if (( oldfd = open(filename, O_RDONLY,  S_IWUSR | S_IRUSR | S_IRWXG)) == -1) {
       perror("Failed to open old file: ");
       free(filename);
       close(fd);
       return -1;
     }
+    printf("Opened old file: %s with %d\n", filename, file_counter -1);
     free(filename);
     filename = NULL;
-
     FILE *file1 = fdopen(fd, "r");
     if (file1 == NULL) {
       close(fd);
@@ -89,9 +95,11 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   }
   asprintf(&filename, "%s/%d", DB_DIR, file_counter);
   FILE *currfile = fopen(filename, "r");
-
+  if(currfile == NULL) {printf("ATA: RIP %s\n", filename );perror("RIPcurrfile");}
   // Complete
+  printf("Finished: filecounter: %d\n", file_counter);
   file_counter++;
+  printf("Post-Finish: filecounter: %d\n", file_counter);
   // Update SSTable
   update_sstable(currfile, metadata);
   fclose(currfile);

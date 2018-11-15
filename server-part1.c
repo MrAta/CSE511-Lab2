@@ -3,6 +3,7 @@
 //
 #include "server-part1.h"
 #include "c0.h"
+#include "c1.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -310,7 +311,7 @@ int run_server_1() {
   its.it_interval.tv_nsec = its.it_value.tv_nsec;
   if (timer_settime(timerid, 0, &its, NULL) == -1)
        errExit("timer_settime");
-
+  c1_init();
   if (loop_and_listen_1()) {
     return EXIT_FAILURE;
   }
