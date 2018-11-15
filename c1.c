@@ -111,7 +111,6 @@ int merge(FILE *file1, FILE *file2) {
   char *filename;
   char *line1 = NULL, *line2 = NULL, *key1, *key2, *val1, *val2;
   int mergefd, valid1, valid2;
-  size_t len1, len2;
   ssize_t size1 = 0, size2 = 0;
 
   if (file1 == NULL || file2 == NULL) return -1;
