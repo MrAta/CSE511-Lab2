@@ -190,17 +190,17 @@ void *server_handler(void *arg) {
       write(sockfd, response, (size_t) response_size);
     } else if (strncmp(tokens, "PUT", 3) == 0) {
       txn.db.data = copy_input_line;
-      while (log_transaction(&txn) != 0);
+      while (!log_transaction(&txn));
       server_1_put_request(key, value, &response, &response_size);
       write(sockfd, response, (size_t) response_size);
     } else if (strncmp(tokens, "INSERT", 6) == 0) {
       txn.db.data = copy_input_line;
-      while (log_transaction(&txn) != 0);
+      while (!log_transaction(&txn));
       server_1_insert_request(key, value, &response, &response_size);
       write(sockfd, "OK", 2);
     } else if (strncmp(tokens, "DELETE", 6) == 0) {
       txn.db.data = copy_input_line;
-      while (log_transaction(&txn) != 0);
+      while (!log_transaction(&txn));
       server_1_delete_request(key, &response, &response_size);
       write(sockfd, response, (size_t) response_size);
     } else {

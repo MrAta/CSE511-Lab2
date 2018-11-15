@@ -1,6 +1,6 @@
 /**
  * @file journal.c
- * 
+ *
  * Function implementations for journaling.
  */
 
@@ -11,14 +11,12 @@ int log_transaction(transaction *tx) {
   pthread_mutex_lock(&journal_mutex);
   FILE *file = fopen("tx_log", "a");
   struct stat st;
-
   if (file == NULL) {
     perror("Could not open tx_log.");
     return -1;
   }
-
   tx->txb.txid = rand();
-  if (fwrite(tx->txb.txid, 1, sizeof(int), file) == 0) {// issue begin
+  if (fwrite(&(tx->txb.txid), 1, sizeof(int), file) == 0) {// issue begin
     perror("Could not write TxB: ");
     fclose(file);
     return -1;
@@ -31,7 +29,7 @@ int log_transaction(transaction *tx) {
     return -1;
   }
 
-  if (fwrite(tx->db.data, 1, strlen(tx->db.data), file)) { // issue data
+  if (fwrite(tx->db.data, 1, strlen(tx->db.data), file)==0) { // issue data
     stat("tx_log", &st);
     ftruncate(fileno(file), st.st_size - sizeof(int));
     perror("Could not write db.data: ");
@@ -48,7 +46,7 @@ int log_transaction(transaction *tx) {
   }
 
   tx->valid = 1; // mark transaction as valid
-  if (fwrite(&( tx->valid ), 1, sizeof(int), file)) {
+  if (fwrite(&( tx->valid ), 1, sizeof(int), file)==0) {
     stat("tx_log", &st);
     ftruncate(fileno(file), st.st_size - sizeof(int) - strlen(tx->db.data));
     perror("Could not write valid bit: ");
@@ -64,8 +62,8 @@ int log_transaction(transaction *tx) {
   }
 
   tx->txe.committed = 1; // other writes good, mark committed flag
-  if (fwrite(&( tx->txe.committed ), 1, sizeof(int), file) ||
-      fwrite("\n", 1, 1, file)) { // issue commit
+  if (fwrite(&( tx->txe.committed ), 1, sizeof(int) ==0, file) ||
+      fwrite("\n", 1, 1, file) == 0) { // issue commit
     stat("tx_log", &st);
     ftruncate(fileno(file), st.st_size - sizeof(int) - strlen(tx->db.data) - sizeof(int));
     perror("Could not flush 'committed': ");
@@ -83,7 +81,6 @@ int log_transaction(transaction *tx) {
   }
 
   // log entry successfully written
-
   fclose(file);
 
   pthread_mutex_unlock(&journal_mutex);
