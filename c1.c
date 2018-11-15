@@ -18,6 +18,7 @@ c1_metadata *metadata;
 char *charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 int c1_batch_insert(c0_node *nodes[], int size) {
+  printf("Called with: filecounter: %d\n", file_counter);
   //
   //
   // LOCAL VARIABLES
@@ -61,6 +62,7 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   // Trigger a merge
   if (file_counter > 0) {
     // Merge with existing file
+    printf("Openning old file with %d\n", file_counter -1);
     asprintf(&filename, "%s/%d", DB_DIR, file_counter - 1);
 
     if (( oldfd = open(filename, O_RDONLY,  S_IWUSR | S_IRUSR | S_IRWXG)) == -1) {
@@ -93,9 +95,13 @@ int c1_batch_insert(c0_node *nodes[], int size) {
       return -1;
     }
   }
+  printf("ATA: Trying 1 with filecounter: %d\n", file_counter);
   asprintf(&filename, "%s/%d", DB_DIR, file_counter);
+  printf("ATA: Tried 1 with filecounter: %d\n", file_counter);
   FILE *currfile = fopen(filename, "r");
-  if(currfile == NULL) {printf("ATA: RIP %s\n", filename );perror("RIPcurrfile");}
+  printf("ATA: Trying 2 with filecounter: %d\n", file_counter);
+  if(currfile == NULL) {printf("ATA: RIP %s\n", filename );perror("RIPcurrfile"); fclose(currfile); return-1;}
+  printf("ATA: Tried 2 with filecounter: %d\n", file_counter);
   // Complete
   printf("Finished: filecounter: %d\n", file_counter);
   file_counter++;
