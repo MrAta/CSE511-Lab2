@@ -16,6 +16,8 @@
 #include <pthread.h>
 #include "cache.h"
 #include "journal.h"
+#include <signal.h>
+#include <time.h>
 // #include "db.h"
 
 #define PORT 8086
@@ -24,6 +26,10 @@
 #define CACHE_SIZE 101
 
 extern struct sockaddr_in address;
+
+int create_server_1();
+
+static void my_timer_handler(int sig, siginfo_t *si, void *uc);
 
 /**
  * The loop for the server. Continuously loops
@@ -38,10 +44,12 @@ int loop_and_listen_1();
  */
 int run_server_1();
 
+void *setup_sigs_and_exec_handler(void *arg);
+
 /**
  * Thread handler for the server upon accepting a new connection
  */
-void *server_handler(void *arg);
+void server_handler(void *arg);
 
 /**
  * Handles the PUT request on the server

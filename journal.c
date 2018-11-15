@@ -259,9 +259,9 @@ int remove_transaction(int txid) {
 
 int flush_log() {
   int rc;
-  pthread_mutex_lock(&journal_mutex);
+//  pthread_mutex_lock(&journal_mutex);
   rc = remove("tx_log");
-  pthread_mutex_unlock(&journal_mutex);
+//  pthread_mutex_unlock(&journal_mutex);
   return rc;
 }
 

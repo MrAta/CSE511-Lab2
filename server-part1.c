@@ -4,14 +4,10 @@
 #include "server-part1.h"
 #include "c0.h"
 #include "c1.h"
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <signal.h>
-#include <time.h>
 
 #define CLOCKID CLOCK_REALTIME
-#define SIG SIGRTMIN
+#define SIG (SIGRTMIN + 3)
+#define TIMER_FREQ_S 5 // change this back
 // #define C0_SIZE_TRSH 4
 #define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE); \
                         } while (0)
@@ -19,14 +15,19 @@ pthread_mutex_t c0_mutex;
 pthread_mutex_t cache_mutex;
 c0_node * _T;
 
-static void
-my_timer_handler(int sig, siginfo_t *si, void *uc)
-{
+static void my_timer_handler(int sig, siginfo_t *si, void *uc) {
+  // handled by main thread only
+
   pthread_mutex_lock(&c0_mutex);
+
+  // only helper threads call log_trans so main thread could never deadlock itself by waiting on this
+  pthread_mutex_lock(&journal_mutex);
   c0_node * c0_batch = _T;
   _T = NULL;
   // pthread_mutex_unlock(&c0_mutex);
   c0_dump(c0_batch);
+  pthread_mutex_unlock(&journal_mutex);
+
   pthread_mutex_unlock(&c0_mutex);
 }
 
@@ -169,8 +170,16 @@ int server_1_delete_request(char *key, char **ret_buffer, int *ret_size) {
 
 }
 
+void *setup_sigs_and_exec_handler(void *arg) {
+    sigset_t mask1;
+    sigemptyset(&mask1);
+    sigaddset(&mask1, SIG); // block this always
+    pthread_sigmask(SIG_BLOCK, &mask1, NULL);
 
-void *server_handler(void *arg) {
+    server_handler(arg);
+}
+
+void server_handler(void *arg) {
   int sockfd = *(int *) arg;
   char *input_line = (char *) calloc(MAX_ENTRY_SIZE, sizeof(char));
   char *copy_input_line = (char *) calloc(MAX_ENTRY_SIZE, sizeof(char));
@@ -273,7 +282,7 @@ int loop_and_listen_1() {
     new_sock = malloc(4);
     *new_sock = newsockfd;
     pthread_t *handler_thread = (pthread_t *) malloc(sizeof(pthread_t));
-    if (pthread_create(handler_thread, NULL, server_handler, (void *) new_sock) != 0) {
+    if (pthread_create(handler_thread, NULL, setup_sigs_and_exec_handler, (void *) new_sock) != 0) {
       perror("Could not start handler");
       continue;
     }
@@ -293,27 +302,28 @@ int run_server_1() {
   struct itimerspec its;
   struct sigaction sa;
 
-  // /* Establish handler for timer signal */
-  // sa.sa_flags = SA_SIGINFO;
-  // sa.sa_sigaction = my_timer_handler;
-  // sigemptyset(&sa.sa_mask);
-  // if (sigaction(SIG, &sa, NULL) == -1)
-  //     errExit("sigaction");
+  /* Establish handler for timer signal */
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = my_timer_handler;
+  sigemptyset(&sa.sa_mask); // empty set
+  sigaddset(&sa.sa_mask, SIG); // block SIG during handler
+  if (sigaction(SIG, &sa, NULL) == -1)
+      errExit("sigaction");
 
-  // /* Create the timer */
-  // sev.sigev_notify = SIGEV_SIGNAL;
-  // sev.sigev_signo = SIG;
-  // sev.sigev_value.sival_ptr = &timerid;
-  // if (timer_create(CLOCKID, &sev, &timerid) == -1)
-  //     errExit("timer_create");
+  /* Create the timer */
+  sev.sigev_notify = SIGEV_SIGNAL;
+  sev.sigev_signo = SIG;
+  sev.sigev_value.sival_ptr = &timerid;
+  if (timer_create(CLOCKID, &sev, &timerid) == -1)
+      errExit("timer_create");
 
-  // /* Start the timer */
-  // its.it_value.tv_sec = 65;//freq_nanosecs / 1000000000; Each 65 seconds flush c0
-  // its.it_value.tv_nsec = 0;//freq_nanosecs % 1000000000;
-  // its.it_interval.tv_sec = its.it_value.tv_sec;
-  // its.it_interval.tv_nsec = its.it_value.tv_nsec;
-  // if (timer_settime(timerid, 0, &its, NULL) == -1)
-  //      errExit("timer_settime");
+  /* Start the timer */
+  its.it_value.tv_sec = TIMER_FREQ_S;//freq_nanosecs / 1000000000; Each 65 seconds flush c0
+  its.it_value.tv_nsec = 0;//freq_nanosecs % 1000000000;
+  its.it_interval.tv_sec = its.it_value.tv_sec;
+  its.it_interval.tv_nsec = its.it_value.tv_nsec;
+  if (timer_settime(timerid, 0, &its, NULL) == -1)
+       errExit("timer_settime");
 
   c1_init();
   
