@@ -287,8 +287,6 @@ int run_server_1() {
   timer_t timerid;
   struct sigevent sev;
   struct itimerspec its;
-  long long freq_nanosecs;
-  sigset_t mask;
   struct sigaction sa;
 
   /* Establish handler for timer signal */

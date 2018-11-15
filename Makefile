@@ -52,4 +52,4 @@ client8: client8.c
 	gcc -g -std=gnu99 client8.c -o client8 -pthread -lm
 
 clean:
-	rm server client client2 client3 client4 client5 client6 client7 client8 btreeunit *.o
+	rm server client *.o c1unit client2 client3 client4 client5 client6 client7 client8

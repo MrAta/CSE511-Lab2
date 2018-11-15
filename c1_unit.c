@@ -34,7 +34,7 @@ int main() {
   for (int i = 0; i < MAX_C0_SIZE; i++) {
     node[i] = malloc(sizeof(c0_node));
     node[i]->key = malloc(MAX_KEY_SIZE);
-    snprintf(node[i]->key, MAX_KEY_SIZE, "%dTestkey", i);
+    snprintf(node[i]->key, MAX_KEY_SIZE, "Testkey%d", i);
     node[i]->value = malloc(MAX_VALUE_SIZE);
     snprintf(node[i]->value, MAX_VALUE_SIZE, "TestValue%d", i);
   }
@@ -54,6 +54,12 @@ int main() {
   assert(rc == 0);
   int check = access("./.db/2", R_OK);
   assert(check == 0);
+
+  printf("Running TEST 4\n");
+  char *result = c1_get("7Testkey");
+  assert(result != NULL);
+  assert(strcmp(result, "TestValue7") == 0);
+  printf("Finished running TEST 4\n");
 
   printf("Successfully ran all tests\n");
   return 0;

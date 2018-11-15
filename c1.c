@@ -242,7 +242,7 @@ char *c1_get(char *key) {
   int numlines = 0;
   char *fname, *val;
 
-  asprintf(&fname, "%s/%d", DB_DIR, file_counter);
+  asprintf(&fname, "%s/%d", DB_DIR, file_counter - 1);
   file = fopen(fname, "r");
   free(fname);
   if (file == NULL) {
@@ -255,9 +255,9 @@ char *c1_get(char *key) {
 
   // Lookup start and end in SSTable
   int startline = (int) ( metadata->ssindex[char_to_idx(key[0])] / LINE_SIZE );
-  int endline = (int) ( metadata->ssindex[char_to_idx(key[0])] / LINE_SIZE );
+  int endline = (int) ( metadata->ssindex[char_to_idx(key[0]) + 1] / LINE_SIZE );
   if (endline > numlines) endline = numlines;
-  val = c1_search(file, key, startline, endline);
+  val = c1_search(file, key, startline, endline - 1);
   fclose(file);
   return val;
 }
@@ -342,13 +342,15 @@ int load_metadata(c1_metadata **md) {
 
 char *c1_search(FILE *file, char *key, int startline, int endline) {
   char *line, *r_key, *val;
-  size_t len, valid;
+  size_t len;
+  int valid;
 
-  if (endline >= 1) {
-    int mid = (( endline - startline ) / 2 ) + 1;
+  if (endline >= startline) {
+    int mid = (( endline - startline ) / 2 ) + startline;
     fseek(file, mid * LINE_SIZE, SEEK_SET);
-    getline(&line, &len, file);
-    sscanf(line, "%ms %ms %ld", &r_key, &val, &valid);
+    line = calloc(LINE_SIZE, 1);
+    len = fread(line, LINE_SIZE, 1, file);
+    sscanf(line, "%ms %ms %d", &r_key, &val, &valid);
     free(line);
     if (strcmp(r_key, key) == 0) {
       free(r_key);
