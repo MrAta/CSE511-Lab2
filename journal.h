@@ -15,7 +15,7 @@
 #include "common.h"
 
 /* Defines */
-#define MAX_JOURNAL_ENTRY_SIZE (9 +MAX_ENTRY_SIZE)
+#define MAX_JOURNAL_ENTRY_SIZE (22 + MAX_ENTRY_SIZE)
 
 typedef struct TxB {
     int txid;
@@ -23,6 +23,7 @@ typedef struct TxB {
 
 typedef struct Db { // server_handler should supply this
     char *data; // client request string
+    size_t data_len;
     // int fd; // socket will be closed by the time we try to recover; during recovery just retry the requests, no notification to client
 } Db;
 
@@ -67,5 +68,13 @@ int flush_log();
  * @return 0: success, -1: error
  */
 int recover();
+
+/**
+ * Unmarshalls data into transaction struct from serialized journal entry
+ * @param tmp_transaction output struct for data
+ * @param tmp_entry serialized data
+ * @return 0: success, -1: error
+ */
+int unmarshall_journal_entry(transaction *tmp_transaction, char *tmp_entry);
 
 #endif /* P1_CRSF_JOURNAL_H */
