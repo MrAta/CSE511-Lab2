@@ -15,6 +15,15 @@ int main(int argc, char *argv[]) {
   }
   switch(atoi(argv[1])) {
     case 1:
+      if (argv[2] && (strncmp(argv[2], "r", 1) == 0)) {
+        printf("Recovering from crash...\n");
+        if (recover() != 0) {
+          printf("Error during recovery.\n");
+        } else {
+          printf("Recovery complete!\n");
+        }
+      }
+      printf("\nWaiting for new connections...\n");
       return run_server_1();
     default:
       printf("Illegal argument value. Exiting\n");

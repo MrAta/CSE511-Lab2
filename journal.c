@@ -17,8 +17,9 @@ int log_transaction(transaction *tx) {
     perror("Could not open tx_log.");
     return -1;
   }
+
   tx->txb.txid = rand();
-  if (!fwrite(&(tx->txb.txid), 1, sizeof(int), file)) {// issue begin
+  if (!fwrite(&(tx->txb.txid), 1, sizeof(int), file)) { // issue begin (txid)
     perror("Could not write TxB: ");
     fclose(file);
     pthread_mutex_unlock(&journal_mutex);
@@ -26,7 +27,7 @@ int log_transaction(transaction *tx) {
   }
   if (fflush(file) != 0) {
     stat("tx_log", &st);
-    ftruncate(fileno(file), st.st_size - sizeof(int));
+    ftruncate(fileno(file), st.st_size - sizeof(int)); // delete txid
     perror("Could not flush TxB.");
     fclose(file);
     pthread_mutex_unlock(&journal_mutex);
@@ -34,11 +35,9 @@ int log_transaction(transaction *tx) {
   }
 
   data_len = tx->db.data_len; // length prefix for easy unmarshalling
-  if (!fwrite(&(tx->db.data_len), 1, sizeof(size_t), file) || // TODOD:FIXIXXXXXX al these truncs
-      !fwrite(tx->db.data, 1, data_len, file) ||
-      !fwrite("\0", 1, 1, file)) { // issue data
+  if (!fwrite(&(tx->db.data_len), 1, sizeof(size_t), file)) { // issue data length
     stat("tx_log", &st);
-    ftruncate(fileno(file), st.st_size - sizeof(int));
+    ftruncate(fileno(file), st.st_size - sizeof(int)); // delete txid
     perror("Could not write db.data: ");
     fclose(file);
     pthread_mutex_unlock(&journal_mutex);
@@ -46,7 +45,41 @@ int log_transaction(transaction *tx) {
   }
   if (fflush(file) != 0) {
     stat("tx_log", &st);
-    ftruncate(fileno(file), st.st_size - sizeof(int) - data_len);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t)); // delete txid/data_len
+    perror("Could not flush data.");
+    fclose(file);
+    pthread_mutex_unlock(&journal_mutex);
+    return -1;
+  }
+
+  if (!fwrite(tx->db.data, 1, data_len, file)) { // issue data
+    stat("tx_log", &st);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t)); // delete txid/data_len
+    perror("Could not write db.data: ");
+    fclose(file);
+    pthread_mutex_unlock(&journal_mutex);
+    return -1;
+  }
+  if (fflush(file) != 0) {
+    stat("tx_log", &st);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len); // delete txid/data_len/data
+    perror("Could not flush data.");
+    fclose(file);
+    pthread_mutex_unlock(&journal_mutex);
+    return -1;
+  }
+
+  if (!fwrite("\0", 1, 1, file)) { // issue null byte
+    stat("tx_log", &st);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len); // delete txid/data_len/data
+    perror("Could not write db.data: ");
+    fclose(file);
+    pthread_mutex_unlock(&journal_mutex);
+    return -1;
+  }
+  if (fflush(file) != 0) {
+    stat("tx_log", &st);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len - 1); // delete txid/data_len/data/nullbyte
     perror("Could not flush data.");
     fclose(file);
     pthread_mutex_unlock(&journal_mutex);
@@ -54,17 +87,17 @@ int log_transaction(transaction *tx) {
   }
 
   tx->valid = 1; // mark transaction as valid
-  if (!fwrite(&( tx->valid ), 1, sizeof(int), file)) {
+  if (!fwrite(&( tx->valid ), 1, sizeof(int), file)) { // issue valid entry indicator
     stat("tx_log", &st);
-    ftruncate(fileno(file), st.st_size - sizeof(int) - data_len);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len - 1); // delete txid/data_len/data/nullbyte
     perror("Could not write valid bit: ");
     fclose(file);
     pthread_mutex_unlock(&journal_mutex);
     return -1;
-  } // issue valid entry indicator
+  }
   if (fflush(file) != 0) {
     stat("tx_log", &st);
-    ftruncate(fileno(file), st.st_size - sizeof(int) - data_len - sizeof(int));
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len - 1 - sizeof(int)); // delete txid/data_len/data/nullbyte/valid
     perror("Could not flush 'valid'.");
     fclose(file);
     pthread_mutex_unlock(&journal_mutex);
@@ -72,10 +105,9 @@ int log_transaction(transaction *tx) {
   }
 
   tx->txe.committed = 1; // other writes good, mark committed flag
-  if (!fwrite(&( tx->txe.committed ), 1, sizeof(int), file) ||
-      !fwrite("\n", 1, 1, file)) { // issue commit, entry delimiter
+  if (!fwrite(&( tx->txe.committed ), 1, sizeof(int), file)) { // issue commit flag
     stat("tx_log", &st);
-    ftruncate(fileno(file), st.st_size - sizeof(int) - data_len - sizeof(int));
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len - 1 - sizeof(int)); // delete txid/data_len/data/nullbyte/valid
     perror("Could not flush 'committed': ");
     fclose(file);
     pthread_mutex_unlock(&journal_mutex);
@@ -83,8 +115,24 @@ int log_transaction(transaction *tx) {
   }
   if (fflush(file) != 0) {
     stat("tx_log", &st);
-    ftruncate(fileno(file), st.st_size - sizeof(int) - data_len - sizeof(int) -
-                            sizeof(int) - 1);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len - 1 - sizeof(int) - sizeof(int)); // delete txid/data_len/data/nullbyte/valid/committed
+    perror("Could not flush 'TxE': ");
+    fclose(file);
+    pthread_mutex_unlock(&journal_mutex);
+    return -1;
+  }
+
+  if (!fwrite("\n", 1, 1, file)) { // issue entry delimiter
+    stat("tx_log", &st);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len - 1 - sizeof(int) - sizeof(int)); // delete txid/data_len/data/nullbyte/valid/committed
+    perror("Could not flush 'committed': ");
+    fclose(file);
+    pthread_mutex_unlock(&journal_mutex);
+    return -1;
+  }
+  if (fflush(file) != 0) {
+    stat("tx_log", &st);
+    ftruncate(fileno(file), st.st_size - sizeof(int) - sizeof(size_t) - data_len - 1 - sizeof(int) - sizeof(int) - 1); // delete txid/data_len/data/nullbyte/valid/committed/newline
     perror("Could not flush 'TxE': ");
     fclose(file);
     pthread_mutex_unlock(&journal_mutex);
@@ -92,12 +140,13 @@ int log_transaction(transaction *tx) {
   }
 
   // log entry successfully written
+
   fclose(file);
 
   pthread_mutex_unlock(&journal_mutex);
 
   // return tx->txb.txid;
-  return 0; // this should be fine if not using txid
+  return 0; // OK
 }
 
 int unmarshall_journal_entry(transaction *tmp_transaction, char *tmp_entry) {
@@ -130,7 +179,7 @@ int remove_transaction(int txid) {
   char *tmp_entry = (char *) calloc(MAX_JOURNAL_ENTRY_SIZE, sizeof(char));
   transaction *tmp_transaction = (transaction *) calloc(sizeof(transaction), sizeof(char));
   int temp_txid = 0;
-  int offset = 0;
+  long offset = 0;
   int z = 0;
 
   FILE *file = fopen("tx_log", "r+");
@@ -142,7 +191,7 @@ int remove_transaction(int txid) {
   }
 
   while (1) {
-    if (fgets(tmp_entry, MAX_JOURNAL_ENTRY_SIZE, file) != NULL) { // read to newline (including newline char, and advances file position to next entry?)
+    if (fgets(tmp_entry, MAX_JOURNAL_ENTRY_SIZE, file) != NULL) { // read to newline (including newline char, and advances file position to next entry)
       if (unmarshall_journal_entry(tmp_transaction, tmp_entry) != 0) {
         perror("Could not unmarshall journal entry");
         free(tmp_transaction);
@@ -155,7 +204,7 @@ int remove_transaction(int txid) {
 
         return -1;
       }
-      // tmp_transaction = (transaction *) tmp_entry; // TODO: Possible problem location -- done
+
       temp_txid = tmp_transaction->txb.txid;
       if (temp_txid == txid) { // found transaction in log
         if (!tmp_transaction->valid) { // if already marked as invalid, ignore
@@ -168,8 +217,7 @@ int remove_transaction(int txid) {
         }
 
         // otherwise, seek back and mark invalid
-        // TODO: Possible problem location -- done
-        offset = (sizeof(int) + sizeof(int) + 1) * -1; // seek back to position to overwrite 4 byte 'valid' variable
+        offset = (sizeof(int) + sizeof(int) + 1) * -1;
         fseek(file, offset, SEEK_CUR);
         fwrite(&z, 1, sizeof(int), file); // mark transaction as invalid (subsequent recovers/removes should ignore it)
         if (fflush(file) != 0) {
@@ -269,7 +317,7 @@ int recover() {
         server_1_insert_request(key, value, &response, &response_size);
       } else if (strncmp(request_type, "DELETE", 6) == 0) {
         server_1_delete_request(key, &response, &response_size);
-      } else { // *** incorrectly formatted journal entry(ies), ignore
+      } else { // incorrectly formatted journal entry, ignore
         continue;
       }
 

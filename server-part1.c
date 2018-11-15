@@ -293,28 +293,30 @@ int run_server_1() {
   struct itimerspec its;
   struct sigaction sa;
 
-  /* Establish handler for timer signal */
-  sa.sa_flags = SA_SIGINFO;
-  sa.sa_sigaction = my_timer_handler;
-  sigemptyset(&sa.sa_mask);
-  if (sigaction(SIG, &sa, NULL) == -1)
-      errExit("sigaction");
+  // /* Establish handler for timer signal */
+  // sa.sa_flags = SA_SIGINFO;
+  // sa.sa_sigaction = my_timer_handler;
+  // sigemptyset(&sa.sa_mask);
+  // if (sigaction(SIG, &sa, NULL) == -1)
+  //     errExit("sigaction");
 
-  /* Create the timer */
-  sev.sigev_notify = SIGEV_SIGNAL;
-  sev.sigev_signo = SIG;
-  sev.sigev_value.sival_ptr = &timerid;
-  if (timer_create(CLOCKID, &sev, &timerid) == -1)
-      errExit("timer_create");
+  // /* Create the timer */
+  // sev.sigev_notify = SIGEV_SIGNAL;
+  // sev.sigev_signo = SIG;
+  // sev.sigev_value.sival_ptr = &timerid;
+  // if (timer_create(CLOCKID, &sev, &timerid) == -1)
+  //     errExit("timer_create");
 
-  /* Start the timer */
-  its.it_value.tv_sec = 65;//freq_nanosecs / 1000000000; Each 65 seconds flush c0
-  its.it_value.tv_nsec = 0;//freq_nanosecs % 1000000000;
-  its.it_interval.tv_sec = its.it_value.tv_sec;
-  its.it_interval.tv_nsec = its.it_value.tv_nsec;
-  if (timer_settime(timerid, 0, &its, NULL) == -1)
-       errExit("timer_settime");
+  // /* Start the timer */
+  // its.it_value.tv_sec = 65;//freq_nanosecs / 1000000000; Each 65 seconds flush c0
+  // its.it_value.tv_nsec = 0;//freq_nanosecs % 1000000000;
+  // its.it_interval.tv_sec = its.it_value.tv_sec;
+  // its.it_interval.tv_nsec = its.it_value.tv_nsec;
+  // if (timer_settime(timerid, 0, &its, NULL) == -1)
+  //      errExit("timer_settime");
+
   c1_init();
+  
   if (loop_and_listen_1()) {
     return EXIT_FAILURE;
   }
