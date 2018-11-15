@@ -11,7 +11,7 @@
 
 #include "c1.h"
 
-int file_counter = 0;
+int file_counter = -1;
 
 c1_metadata *metadata;
 
@@ -27,8 +27,8 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   int fd, oldfd = 0, rc;
   char *filename;
   char *keyval;
-  printf("Start: filecounter: %d\n", file_counter);
-  asprintf(&filename, "%s/%d", DB_DIR, file_counter);
+  printf("Start: filecounter: %d\n", ++file_counter);
+  asprintf(&filename, "%s/%d", DB_DIR, ++file_counter);
   // printf("C1: %s\n", filename);
   fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IRWXG);
 
@@ -37,7 +37,7 @@ int c1_batch_insert(c0_node *nodes[], int size) {
     perror("Failed to open new file: ");
     return -1;
   }
-  printf("Created %s with %d\n", filename,file_counter);
+  printf("Created %s with %d\n", filename, file_counter);
   free(filename);
   filename = NULL;
   for (int i = 0; i < size; i++) {
@@ -62,16 +62,16 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   // Trigger a merge
   if (file_counter > 0) {
     // Merge with existing file
-    printf("Openning old file with %d\n", file_counter -1);
-    asprintf(&filename, "%s/%d", DB_DIR, file_counter - 1);
+    printf("Openning old file with %d\n", file_counter);
+    asprintf(&filename, "%s/%d", DB_DIR, file_counter);
 
-    if (( oldfd = open(filename, O_RDONLY,  S_IWUSR | S_IRUSR | S_IRWXG)) == -1) {
+    if (( oldfd = open(filename, O_RDONLY, S_IWUSR | S_IRUSR | S_IRWXG)) == -1) {
       perror("Failed to open old file: ");
       free(filename);
       close(fd);
       return -1;
     }
-    printf("Opened old file: %s with %d\n", filename, file_counter -1);
+    printf("Opened old file: %s with %d\n", filename, file_counter);
     free(filename);
     filename = NULL;
     FILE *file1 = fdopen(fd, "r");
@@ -100,11 +100,15 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   printf("ATA: Tried 1 with filecounter: %d\n", file_counter);
   FILE *currfile = fopen(filename, "r");
   printf("ATA: Trying 2 with filecounter: %d\n", file_counter);
-  if(currfile == NULL) {printf("ATA: RIP %s\n", filename );perror("RIPcurrfile"); fclose(currfile); return-1;}
+  if (currfile == NULL) {
+    printf("ATA: RIP %s\n", filename);
+    perror("RIPcurrfile");
+    fclose(currfile);
+    return -1;
+  }
   printf("ATA: Tried 2 with filecounter: %d\n", file_counter);
   // Complete
   printf("Finished: filecounter: %d\n", file_counter);
-  file_counter++;
   printf("Post-Finish: filecounter: %d\n", file_counter);
   // Update SSTable
   update_sstable(currfile, metadata);
@@ -255,7 +259,7 @@ char *c1_get(char *key) {
   int numlines = 0;
   char *fname, *val;
 
-  asprintf(&fname, "%s/%d", DB_DIR, file_counter - 1);
+  asprintf(&fname, "%s/%d", DB_DIR, file_counter);
   file = fopen(fname, "r");
   free(fname);
   if (file == NULL) {
@@ -264,11 +268,11 @@ char *c1_get(char *key) {
   }
   fseek(file, 0, SEEK_END);
   size = (size_t) ftell(file);
-  numlines = (int) ( size / LINE_SIZE );
+  numlines = (int) ( size / LINE_SIZE);
 
   // Lookup start and end in SSTable
-  int startline = (int) ( metadata->ssindex[char_to_idx(key[0])] / LINE_SIZE );
-  int endline = (int) ( metadata->ssindex[char_to_idx(key[0]) + 1] / LINE_SIZE );
+  int startline = (int) ( metadata->ssindex[char_to_idx(key[0])] / LINE_SIZE);
+  int endline = (int) ( metadata->ssindex[char_to_idx(key[0]) + 1] / LINE_SIZE);
   if (endline > numlines) endline = numlines;
   val = c1_search(file, key, startline, endline - 1);
   fclose(file);
@@ -342,7 +346,7 @@ int load_metadata(c1_metadata **md) {
   if (md_file == NULL) {
     return 0;
   }
-  if (fread(buf, sizeof((*md)->ssindex) + sizeof(int), 1, md_file) == 0) {
+  if (fread(buf, sizeof(( *md )->ssindex) + sizeof(int), 1, md_file) == 0) {
     // First run ever
     free(buf);
     return 0;
@@ -404,10 +408,10 @@ int update_sstable(FILE *dfile, c1_metadata *md) {
   size_t bytes_read;
 
   line = calloc(LINE_SIZE, 1);
-  while ((bytes_read = fread(line, LINE_SIZE, 1, dfile)) != 0) {
+  while (( bytes_read = fread(line, LINE_SIZE, 1, dfile)) != 0) {
     idx = char_to_idx(line[0]);
     if (!boolmask[idx]) { // First occurrence of the given character
-      offset = ftell(dfile) - (bytes_read * LINE_SIZE);
+      offset = ftell(dfile) - ( bytes_read * LINE_SIZE);
       md->ssindex[idx] = offset;
       boolmask[idx] = 1;
     }
