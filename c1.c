@@ -412,6 +412,7 @@ int update_sstable(FILE *dfile, c1_metadata *md) {
   // LOCAL VARIABLES
   //
   //
+  printf("in sstable\n");
   char *line;
   int boolmask[INDEX_SIZE] = { 0 };
   int idx;

@@ -36,6 +36,7 @@ typedef struct {
   long ssindex[INDEX_SIZE];
 } c1_metadata;
 
+extern int file_counter;
 extern c1_metadata *metadata;
 
 void c1_init();

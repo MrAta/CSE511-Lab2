@@ -390,6 +390,10 @@ int recover() {
     } else { // short read or zero read -> EOF or malformed entry? either way exit
       printf("readbytes: %d\n", read_bytes);
       printf("errno: %s\n", strerror(errno));
+      printf("===========\n");
+      printf("closing file-2: %d\n", fileno(file));
+      fclose(file);
+      printf("closed file-2\n");
       break;
     }
   }
@@ -401,10 +405,13 @@ int recover() {
   free(tmp_transaction);
   free(tmp_entry);
   frees += 2;
+  
   printf("frees: %d\n", frees);
-  printf("closing file-2: %d\n", fileno(file));
-  // fclose(file);
-  printf("closed file-2\n");
+  // printf("closing file-2: %d\n", fileno(file));
+  // if (fclose(file) != 0) {
+  //   perror("Error closing file: ");
+  // }
+  // printf("closed file-2\n");
 
   remove("tx_log"); // flush_log but already have lock
 
