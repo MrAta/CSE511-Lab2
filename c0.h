@@ -1,5 +1,17 @@
-#include<stdio.h>
+/**
+ * @file c0.h
+ * 
+ * Declarations for c0 related things.
+ */
+
+/* Includes */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 #include "c1.h"
+
+/* Functions */
 c0_node *Insert(c0_node * T,char *key, char *value, int flag);
 c0_node *Delete(c0_node *T,char *key);
 c0_node * Get(c0_node *T, char *key);

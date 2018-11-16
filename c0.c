@@ -1,7 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+/**
+ * @file c0.c
+ * 
+ * c0 (AVL) - memory resident portion of database.
+ */
+
 #include "c0.h"
 #include "journal.h"
 
@@ -26,7 +28,7 @@ c0_node *Insert(c0_node *T, char *key, char *value, int flag) {
         T = RR(T);
       else
         T = RL(T);
-  } else if (strcmp(key, T->key) <= 0) {
+  } else if (strcmp(key, T->key) < 0) {
     //   printf("Lower\n" );
     T->left = Insert(T->left, key, value, flag);
     if (BF(T) == 2)
@@ -217,6 +219,10 @@ void inorder(c0_node *T) {
 void c0_dump(c0_node *T) {
   int _size = c0_size(T);
 
+  if (_size == 0) { // empty tree?
+    return;
+  }
+
   c0_node *nodes[_size];
   dumpToArray(T, nodes, 0);
   // for(int i=0; i<_size; i++)printf("Index:%d, Node: %p\n",i,nodes[i] );
@@ -234,14 +240,16 @@ int dumpToArray(c0_node * T, c0_node *nodes[], int i){
     i = dumpToArray(T->left, nodes, i);
 
     nodes[i] = T;
+    printf("dumping node to array === key: %s, value: %s\n", nodes[i]->key, nodes[i]->value);
     // printf("node inserted at %d: %s\n",i, nodes[i]->key);//printf("node inserted: %s\n", nodes[i]->key);
     i++;
 
     //   if(T->right != NULL)
     i = dumpToArray(T->right, nodes, i);
 
-    // return i++;
+    return i;
 }
+
 // void dumpToArray(c0_node *T, c0_node *nodes[], int i) {
 //   if (T == NULL) return;
 //   //   nodes[i] = T;
