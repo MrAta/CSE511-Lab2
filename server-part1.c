@@ -227,12 +227,15 @@ void server_handler(void *arg) {
       free(response);
     }
     free(input_line);
+    free(copy_input_line);
     input_line = NULL;
     input_line = (char *) calloc(MAX_ENTRY_SIZE, sizeof(char *));
+    copy_input_line = (char *) calloc(MAX_ENTRY_SIZE, sizeof(char *));
     response = NULL;
   }
   free(arg);
   free(input_line);
+  free(copy_input_line);
   input_line = NULL;
   close(sockfd);
   return NULL;

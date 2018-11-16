@@ -57,6 +57,8 @@ void cache_put(char *name, char *defn) {
       // insert a new node in the list
       // This will not work for a cache size 1
       tail = tail->prev;
+      free(tail->next->defn);
+      free(tail->next->name);
       free(tail->next);
       tail->next = NULL;
     } else {
@@ -65,6 +67,7 @@ void cache_put(char *name, char *defn) {
     }
   } else {
     // update cache entry
+    free(cache_entry->defn);
     cache_entry->defn = strdups(defn);
   }
 }
@@ -79,6 +82,8 @@ void cache_invalidate(char *key) {
     } else {
       head = NULL;
     }
+    free(iter->defn);
+    free(iter->name);
     free(iter);
     global_cache_count--;
   }

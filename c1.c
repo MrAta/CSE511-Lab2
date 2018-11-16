@@ -102,10 +102,12 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   printf("ATA: Trying 2 with filecounter: %d\n", file_counter);
   if (currfile == NULL) {
     printf("ATA: RIP %s\n", filename);
+    free(filename);
     perror("RIPcurrfile");
     fclose(currfile);
     return -1;
   }
+  free(filename);
   printf("ATA: Tried 2 with filecounter: %d\n", file_counter);
   // Complete
   printf("Finished: filecounter: %d\n", file_counter);
@@ -361,6 +363,7 @@ int load_metadata(c1_metadata **md) {
   }
 
   unmarshall_metadata(*md, buf);
+  file_counter = (*md)->counter_value;
   free(buf);
   return 0;
 }
