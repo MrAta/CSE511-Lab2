@@ -134,7 +134,7 @@ int merge(FILE *file1, FILE *file2) {
   if (file1 == NULL || file2 == NULL) return -1;
 
   asprintf(&filename, "%s/%d", DB_DIR, ++file_counter);
-  if (( mergefd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR)) == -1) {
+  if (( mergefd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IRWXG)) == -1) {
     perror("Failed to open a new merge file: ");
     free(filename);
     return -1;
@@ -272,8 +272,16 @@ char *c1_get(char *key) {
 
   // Lookup start and end in SSTable
   int startline = (int) ( metadata->ssindex[char_to_idx(key[0])] / LINE_SIZE);
+  if (metadata->ssindex[char_to_idx(key[0])] == -1) {
+    startline = 0;
+  }
   int endline = (int) ( metadata->ssindex[char_to_idx(key[0]) + 1] / LINE_SIZE);
-  if (endline > numlines) endline = numlines;
+  if (metadata->ssindex[char_to_idx(key[0]) + 1] == -1) {
+    endline = numlines;
+  }
+  if (endline > numlines){
+    endline = numlines;
+  }
   val = c1_search(file, key, startline, endline - 1);
   fclose(file);
   return val;
@@ -339,8 +347,8 @@ int load_metadata(c1_metadata **md) {
   char filename[15];
   char *buf = NULL;
 
-  *md = malloc(sizeof(c1_metadata));
-  buf = malloc(sizeof(c1_metadata));
+  *md = calloc(1, sizeof(c1_metadata));
+  buf = calloc(1, sizeof(c1_metadata));
   snprintf(filename, 15, "%s/%s", DB_DIR, SSTABLE);
   md_file = fopen(filename, "r");
   if (md_file == NULL) {
@@ -417,6 +425,11 @@ int update_sstable(FILE *dfile, c1_metadata *md) {
     }
     free(line);
     line = calloc(LINE_SIZE, 1);
+  }
+  for (int i = 0; i < INDEX_SIZE; i++) {
+    if (md->ssindex[i] == 0) {
+      md->ssindex[i] = -1;
+    }
   }
   free(line);
   md->counter_value = file_counter;
