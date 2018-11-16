@@ -62,8 +62,8 @@ int c1_batch_insert(c0_node *nodes[], int size) {
   // Trigger a merge
   if (file_counter > 0) {
     // Merge with existing file
-    printf("Openning old file with %d\n", file_counter);
-    asprintf(&filename, "%s/%d", DB_DIR, file_counter);
+    printf("Openning old file with %d\n", file_counter - 1);
+    asprintf(&filename, "%s/%d", DB_DIR, file_counter - 1);
 
     if (( oldfd = open(filename, O_RDONLY, S_IWUSR | S_IRUSR | S_IRWXG)) == -1) {
       perror("Failed to open old file: ");
@@ -71,7 +71,7 @@ int c1_batch_insert(c0_node *nodes[], int size) {
       close(fd);
       return -1;
     }
-    printf("Opened old file: %s with %d\n", filename, file_counter);
+    printf("Opened old file: %s with %d\n", filename, file_counter - 1);
     free(filename);
     filename = NULL;
     FILE *file1 = fdopen(fd, "r");
