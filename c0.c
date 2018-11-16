@@ -216,22 +216,6 @@ void inorder(c0_node *T) {
   }
 }
 
-void c0_dump(c0_node *T) {
-  int _size = c0_size(T);
-
-  if (_size == 0) { // empty tree?
-    return;
-  }
-
-  c0_node *nodes[_size];
-  dumpToArray(T, nodes, 0);
-  // for(int i=0; i<_size; i++)printf("Index:%d, Node: %p\n",i,nodes[i] );
-  if (!c1_batch_insert(nodes, _size)) {
-    flush_log();
-  }
-  return;
-}
-
 int dumpToArray(c0_node * T, c0_node *nodes[], int i){
     if(T == NULL) return i;
     //   nodes[i] = T;
@@ -248,6 +232,22 @@ int dumpToArray(c0_node * T, c0_node *nodes[], int i){
     i = dumpToArray(T->right, nodes, i);
 
     return i;
+}
+
+void c0_dump(c0_node *T) {
+  int _size = c0_size(T);
+
+  if (_size == 0) { // empty tree?
+    return;
+  }
+
+  c0_node *nodes[_size];
+  dumpToArray(T, nodes, 0);
+  // for(int i=0; i<_size; i++)printf("Index:%d, Node: %p\n",i,nodes[i] );
+  if (!c1_batch_insert(nodes, _size)) {
+    flush_log();
+  }
+  return;
 }
 
 // void dumpToArray(c0_node *T, c0_node *nodes[], int i) {
