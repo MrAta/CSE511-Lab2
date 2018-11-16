@@ -15,7 +15,7 @@
 #include "common.h"
 
 /* Defines */
-#define MAX_JOURNAL_ENTRY_SIZE (22 + MAX_ENTRY_SIZE)
+#define MAX_JOURNAL_ENTRY_SIZE (22 + MAX_ENTRY_SIZE + 2 + 6) // 22 bytes for metadata, key/val ENTRY size, 2 spaces and 6 chars for INSERT
 
 typedef struct TxB {
     int txid;

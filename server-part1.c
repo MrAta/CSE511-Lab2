@@ -298,7 +298,7 @@ int loop_and_listen_1() {
 int run_server_1() {
   // Load database
   head = tail = temp_node = NULL;
-  _T = NULL;
+  // _T = NULL;
   pthread_mutex_init(&c0_mutex, 0);
   pthread_mutex_init(&cache_mutex, 0);
   // db_init();

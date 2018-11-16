@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <time.h>
 #include <errno.h>
+#include "c1.h"
 // #include "db.h"
 
 #define PORT 8086
@@ -26,6 +27,7 @@
 
 #define CACHE_SIZE 101
 
+extern c0_node * _T;
 extern struct sockaddr_in address;
 
 int create_server_1();

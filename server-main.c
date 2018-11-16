@@ -17,11 +17,14 @@ int main(int argc, char *argv[]) {
     case 1:
       if (argv[2] && (strncmp(argv[2], "r", 1) == 0)) {
         printf("Recovering from crash...\n");
+        _T = NULL;
         if (recover() != 0) {
           printf("Error during recovery.\n");
         } else {
           printf("Recovery complete!\n");
         }
+      } else {
+        _T = NULL; // dont reinitialize to null inside run_server_1 cause then all of our nodes from recovery are leaked
       }
       printf("\nWaiting for new connections...\n");
       return run_server_1();
