@@ -159,6 +159,8 @@ int unmarshall_journal_entry(transaction *tmp_transaction, char *tmp_entry) {
   entry_pos += sizeof(size_t);
 
   tmp_transaction->db.data = (char *) calloc(tmp_transaction->db.data_len + 1, sizeof(char));
+  // printf("db.data: %s, db.data_len: %d\n", tmp_transaction->db.data, tmp_transaction->db.data_len);
+  printf("asking for %d bytes: %s\n", (tmp_transaction->db.data_len + 1)*sizeof(char), strerror(errno));
   memcpy(tmp_transaction->db.data, entry_pos, tmp_transaction->db.data_len + 1); // data and null byte
   entry_pos += tmp_transaction->db.data_len + 1;
 

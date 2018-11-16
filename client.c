@@ -222,7 +222,7 @@ void *client_func() {
     fprintf(fp, "%f\n", time_taken);
     pthread_mutex_unlock(&fp_mutex);
     // printf("SENT %s || RESPONSE: buffer\n", cmd);
-    printf("Sent %d requsts so far\n", local_count+1);
+    printf("Sent %d requests so far\n", local_count+1);
     usleep(nextArrival()*1000000*NUM_THREADS);
     local_count++;
   }

@@ -18,6 +18,7 @@
 #include "journal.h"
 #include <signal.h>
 #include <time.h>
+#include <errno.h>
 // #include "db.h"
 
 #define PORT 8086
@@ -44,6 +45,11 @@ int loop_and_listen_1();
  */
 int run_server_1();
 
+/**
+ * Setup signal mask for helper threads (blocking handler) then call server helper
+ * @param arg 
+ * @return void * 
+ */
 void *setup_sigs_and_exec_handler(void *arg);
 
 /**

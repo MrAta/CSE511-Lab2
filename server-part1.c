@@ -186,14 +186,17 @@ void server_handler(void *arg) {
   char *tokens, *response = NULL,  *save_ptr;
   int response_size;
   transaction txn;
-  while (read(sockfd, input_line, MAX_ENTRY_SIZE)) {
+  // int re = 0;
+  // while (re = read(sockfd, input_line, MAX_ENTRY_SIZE)) {
+  while (read(sockfd, input_line, MAX_ENTRY_SIZE) > 0) { // stop if connection closed by peer
     // db_connect();
     strncpy(copy_input_line, input_line, MAX_ENTRY_SIZE);
     tokens = strtok_r(input_line, " ", &save_ptr);
     char *key = strtok_r(NULL, " ", &save_ptr);
     char *value = strtok_r(NULL, " ", &save_ptr);
     if (tokens == NULL || key == NULL) {
-      printf("Invalid key/command received\n");
+      printf("Invalid key/command received (server-part-1)\n");
+      printf("errno: %s\n", strerror(errno)); // "errno: Connection reset by peer"
       write(sockfd, "BAD BOI", 8);
     } else if (strncmp(tokens, "GET", 3) == 0) {
       server_1_get_request(key, &response, &response_size);
