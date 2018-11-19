@@ -6,7 +6,6 @@ LIBFLAGS=-shared -Wall -pthread
 LINKLIBS=-lm -lrt
 TARGETS=server client
 OBJECTS= server-main.o \
-			db.o \
 			cache.o \
 			c1.o \
 			c0.o \
