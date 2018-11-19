@@ -224,7 +224,7 @@ int dumpToArray(c0_node * T, c0_node *nodes[], int i){
     i = dumpToArray(T->left, nodes, i);
 
     nodes[i] = T;
-    printf("dumping node to array === key: %s, value: %s\n", nodes[i]->key, nodes[i]->value);
+    //printf("dumping node to array === key: %s, value: %s\n", nodes[i]->key, nodes[i]->value);
     // printf("node inserted at %d: %s\n",i, nodes[i]->key);//printf("node inserted: %s\n", nodes[i]->key);
     i++;
 
