@@ -169,6 +169,7 @@ int log_transaction(transaction *tx) {
     pthread_mutex_unlock(&journal_mutex);
     return -1;
   }
+  free(rbb);
   // bytes_written += remaining_bytes; // dont care
 
   // log entry successfully written
@@ -377,6 +378,7 @@ int recover() {
 
       if (tmp_transaction->db.data) {
         free(tmp_transaction->db.data);
+        tmp_transaction->db.data = NULL;
         frees++;
         printf("frees: %d\n", frees);
       }
@@ -400,6 +402,7 @@ int recover() {
 
   if (tmp_transaction->db.data) {
     free(tmp_transaction->db.data);
+    tmp_transaction->db.data = NULL;
   }
 
   free(tmp_transaction);
